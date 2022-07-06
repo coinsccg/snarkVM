@@ -120,7 +120,7 @@ impl<E: PairingEngine, FS: FiatShamirRng<E::Fr, E::Fq>, MM: MarlinMode, Input: T
 
         let commit_time = start_timer!(|| "Commit to index polynomials");
         let (mut circuit_commitments, circuit_commitment_randomness): (_, _) =
-            SonicKZG10::<E, FS>::commit(&committer_key, index.iter().map(Into::into), None)?;
+            SonicKZG10::<E, FS>::commit(&committer_key, index.iter().map(Into::into), None, 0)?;
         end_timer!(commit_time);
 
         circuit_commitments.sort_by(|c1, c2| c1.label().cmp(c2.label()));
@@ -232,6 +232,7 @@ where
         circuits: &[C],
         terminator: &AtomicBool,
         zk_rng: &mut R,
+        index: usize
     ) -> Result<Self::Proof, SNARKError> {
         let prover_time = start_timer!(|| "Marlin::Prover");
         let batch_size = circuits.len();
@@ -266,6 +267,7 @@ where
                 &circuit_proving_key.committer_key,
                 first_round_oracles.iter_for_commit(),
                 Some(zk_rng),
+                index
             )?
         };
         end_timer!(first_round_comm_time);
@@ -294,6 +296,7 @@ where
             second_oracles.iter().map(Into::into),
             terminator,
             Some(zk_rng),
+            index
         )?;
         end_timer!(second_round_comm_time);
 
@@ -319,6 +322,7 @@ where
             third_oracles.iter().map(Into::into),
             terminator,
             Some(zk_rng),
+            index
         )?;
         end_timer!(third_round_comm_time);
 
@@ -343,6 +347,7 @@ where
             fourth_oracles.iter().map(Into::into),
             terminator,
             Some(zk_rng),
+            index
         )?;
         end_timer!(fourth_round_comm_time);
 

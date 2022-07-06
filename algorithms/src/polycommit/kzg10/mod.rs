@@ -219,6 +219,7 @@ impl<E: PairingEngine> KZG10<E> {
         hiding_bound: Option<usize>,
         terminator: &AtomicBool,
         rng: Option<&mut dyn RngCore>,
+        index: usize
     ) -> Result<(Commitment<E>, Randomness<E>), PCError> {
         Self::check_degree_is_too_large(polynomial.degree(), powers.size())?;
 
@@ -233,7 +234,7 @@ impl<E: PairingEngine> KZG10<E> {
                 let (num_leading_zeros, plain_coeffs) = skip_leading_zeros_and_convert_to_bigints(polynomial);
 
                 let msm_time = start_timer!(|| "MSM to compute commitment to plaintext poly");
-                let commitment = VariableBase::msm(&powers.powers_of_beta_g[num_leading_zeros..], &plain_coeffs);
+                let commitment = VariableBase::msm(&powers.powers_of_beta_g[num_leading_zeros..], &plain_coeffs, index);
                 end_timer!(msm_time);
 
                 if terminator.load(Ordering::Relaxed) {
@@ -266,7 +267,7 @@ impl<E: PairingEngine> KZG10<E> {
         let random_ints = convert_to_bigints(&randomness.blinding_polynomial.coeffs);
         let msm_time = start_timer!(|| "MSM to compute commitment to random poly");
         let random_commitment =
-            VariableBase::msm(&powers.powers_of_beta_times_gamma_g, random_ints.as_slice()).to_affine();
+            VariableBase::msm(&powers.powers_of_beta_times_gamma_g, random_ints.as_slice(), index).to_affine();
         end_timer!(msm_time);
 
         if terminator.load(Ordering::Relaxed) {
@@ -286,6 +287,7 @@ impl<E: PairingEngine> KZG10<E> {
         hiding_bound: Option<usize>,
         terminator: &AtomicBool,
         rng: Option<&mut dyn RngCore>,
+        index: usize
     ) -> Result<(Commitment<E>, Randomness<E>), PCError> {
         Self::check_degree_is_too_large(evaluations.len() - 1, lagrange_basis.size())?;
         assert_eq!(evaluations.len().next_power_of_two(), lagrange_basis.size());
@@ -298,7 +300,7 @@ impl<E: PairingEngine> KZG10<E> {
 
         let evaluations = evaluations.iter().map(|e| e.to_repr()).collect::<Vec<_>>();
         let msm_time = start_timer!(|| "MSM to compute commitment to plaintext poly");
-        let mut commitment = VariableBase::msm(&lagrange_basis.lagrange_basis_at_beta_g, &evaluations);
+        let mut commitment = VariableBase::msm(&lagrange_basis.lagrange_basis_at_beta_g, &evaluations, index);
         end_timer!(msm_time);
 
         if terminator.load(Ordering::Relaxed) {
@@ -322,7 +324,7 @@ impl<E: PairingEngine> KZG10<E> {
         let random_ints = convert_to_bigints(&randomness.blinding_polynomial.coeffs);
         let msm_time = start_timer!(|| "MSM to compute commitment to random poly");
         let random_commitment =
-            VariableBase::msm(&lagrange_basis.powers_of_beta_times_gamma_g, random_ints.as_slice()).to_affine();
+            VariableBase::msm(&lagrange_basis.powers_of_beta_times_gamma_g, random_ints.as_slice(), index).to_affine();
         end_timer!(msm_time);
 
         if terminator.load(Ordering::Relaxed) {
@@ -377,7 +379,7 @@ impl<E: PairingEngine> KZG10<E> {
         let (num_leading_zeros, witness_coeffs) = skip_leading_zeros_and_convert_to_bigints(witness_polynomial);
 
         let witness_comm_time = start_timer!(|| "Computing commitment to witness polynomial");
-        let mut w = VariableBase::msm(&powers.powers_of_beta_g[num_leading_zeros..], &witness_coeffs);
+        let mut w = VariableBase::msm(&powers.powers_of_beta_g[num_leading_zeros..], &witness_coeffs, 0);
         end_timer!(witness_comm_time);
 
         let random_v = if let Some(hiding_witness_polynomial) = hiding_witness_polynomial {
@@ -388,7 +390,7 @@ impl<E: PairingEngine> KZG10<E> {
 
             let random_witness_coeffs = convert_to_bigints(&hiding_witness_polynomial.coeffs);
             let witness_comm_time = start_timer!(|| "Computing commitment to random witness polynomial");
-            w += &VariableBase::msm(&powers.powers_of_beta_times_gamma_g, &random_witness_coeffs);
+            w += &VariableBase::msm(&powers.powers_of_beta_times_gamma_g, &random_witness_coeffs, 0);
             end_timer!(witness_comm_time);
             Some(blinding_evaluation)
         } else {
@@ -632,7 +634,7 @@ mod tests {
             let (ck, vk) = KZG10::trim(&pp, degree);
             let p = DensePolynomial::rand(degree, rng);
             let hiding_bound = Some(1);
-            let (comm, rand) = KZG10::<E>::commit(&ck, &(&p).into(), hiding_bound, &AtomicBool::new(false), Some(rng))?;
+            let (comm, rand) = KZG10::<E>::commit(&ck, &(&p).into(), hiding_bound, &AtomicBool::new(false), Some(rng), 0)?;
             let point = E::Fr::rand(rng);
             let value = p.evaluate(point);
             let proof = KZG10::<E>::open(&ck, &p, point, &rand)?;
@@ -655,7 +657,7 @@ mod tests {
             let (ck, vk) = KZG10::trim(&pp, 2);
             let p = DensePolynomial::rand(1, rng);
             let hiding_bound = Some(1);
-            let (comm, rand) = KZG10::<E>::commit(&ck, &(&p).into(), hiding_bound, &AtomicBool::new(false), Some(rng))?;
+            let (comm, rand) = KZG10::<E>::commit(&ck, &(&p).into(), hiding_bound, &AtomicBool::new(false), Some(rng), 0)?;
             let point = E::Fr::rand(rng);
             let value = p.evaluate(point);
             let proof = KZG10::<E>::open(&ck, &p, point, &rand)?;
@@ -689,7 +691,7 @@ mod tests {
                 let p = DensePolynomial::rand(degree, rng);
                 let hiding_bound = Some(1);
                 let (comm, rand) =
-                    KZG10::<E>::commit(&ck, &(&p).into(), hiding_bound, &AtomicBool::new(false), Some(rng))?;
+                    KZG10::<E>::commit(&ck, &(&p).into(), hiding_bound, &AtomicBool::new(false), Some(rng), 0)?;
                 let point = E::Fr::rand(rng);
                 let value = p.evaluate(point);
                 let proof = KZG10::<E>::open(&ck, &p, point, &rand)?;

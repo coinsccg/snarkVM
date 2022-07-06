@@ -24,10 +24,11 @@ use snarkvm_utilities::BitIteratorBE;
 use rust_gpu_tools::{cuda, program_closures, Device, GPUError, Program};
 
 use std::{any::TypeId, path::Path, process::Command};
-use std::sync::Rwlock;
+use std::sync::{Rwlock, Arc};
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+use rayon::{ThreadPool, ThreadPoolBuilder};
 
 pub struct CudaRequest {
     bases: Vec<G1Affine>,
@@ -323,7 +324,6 @@ fn init_cuda_dispatch() {
     }
 }
 
-
 lazy_static::lazy_static! {
     static ref CUDA_DISPATCH: Rwlock<Vec<crossbeam_channel::Sender<CudaRequest>>> = Rwlock::New(Vec::new());
 }
@@ -332,6 +332,7 @@ lazy_static::lazy_static! {
 pub(super) fn msm_cuda<G: AffineCurve>(
     mut bases: &[G],
     mut scalars: &[<G::ScalarField as PrimeField>::BigInteger],
+    index: usize
 ) -> Result<G::Projective, GPUError> {
     if TypeId::of::<G>() != TypeId::of::<G1Affine>() {
         unimplemented!("trying to use cuda for unsupported curve");
@@ -342,7 +343,6 @@ pub(super) fn msm_cuda<G: AffineCurve>(
             init_cuda_dispatch();
         }
     }
-
 
     match bases.len() < scalars.len() {
         true => scalars = &scalars[..bases.len()],
@@ -357,17 +357,16 @@ pub(super) fn msm_cuda<G: AffineCurve>(
         }
         return Ok(acc);
     }
-
+    
     let (sender, receiver) = crossbeam_channel::bounded(1);
-    for dispatcher in CUDA_DISPATCH.read() {
-        if let Ok(dispatcher_sender) = dispatcher {
+    if let Ok(dispatcher) = CUDA_DISPATCH.read() {
+        if Some(dispatcher_sender) = dispatcher.get(index){
             dispatcher_sender.send(CudaRequest {
                 bases: unsafe { std::mem::transmute(bases.to_vec()) },
                 scalars: unsafe { std::mem::transmute(scalars.to_vec()) },
                 response: sender,
             })
             .map_err(|_| GPUError::DeviceNotFound)?;
-
             match receiver.recv() {
                 Ok(x) => unsafe { std::mem::transmute_copy(&x) },
                 Err(_) => Err(GPUError::DeviceNotFound),
@@ -375,7 +374,10 @@ pub(super) fn msm_cuda<G: AffineCurve>(
         } else {
             Err(GPUError::DeviceNotFound)
         }
+    } else {
+        Err(GPUError::DeviceNotFound)
     }
+    
 }
 
 #[cfg(test)]

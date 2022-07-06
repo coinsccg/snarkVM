@@ -206,8 +206,9 @@ impl<E: PairingEngine, S: FiatShamirRng<E::Fr, E::Fq>> SonicKZG10<E, S> {
         ck: &CommitterKey<E>,
         polynomials: impl IntoIterator<Item = LabeledPolynomialWithBasis<'b, E::Fr>>,
         rng: Option<&mut dyn RngCore>,
+        index: usize
     ) -> Result<(Vec<LabeledCommitment<Commitment<E>>>, Vec<Randomness<E>>), PCError> {
-        Self::commit_with_terminator(ck, polynomials, &AtomicBool::new(false), rng)
+        Self::commit_with_terminator(ck, polynomials, &AtomicBool::new(false), rng, index)
     }
 
     /// Outputs a commitment to `polynomial`.
@@ -218,6 +219,7 @@ impl<E: PairingEngine, S: FiatShamirRng<E::Fr, E::Fq>> SonicKZG10<E, S> {
         polynomials: impl IntoIterator<Item = LabeledPolynomialWithBasis<'a, E::Fr>>,
         terminator: &AtomicBool,
         rng: Option<&mut dyn RngCore>,
+        index: usize
     ) -> Result<(Vec<LabeledCommitment<Commitment<E>>>, Vec<Randomness<E>>), PCError> {
         let rng = &mut OptionalRng(rng);
         let commit_time = start_timer!(|| "Committing to polynomials");
@@ -274,6 +276,7 @@ impl<E: PairingEngine, S: FiatShamirRng<E::Fr, E::Fq>> SonicKZG10<E, S> {
                                     hiding_bound,
                                     terminator,
                                     rng_ref,
+                                    index
                                 )
                             }
                             PolynomialWithBasis::Monomial { polynomial, degree_bound } => {
@@ -283,7 +286,7 @@ impl<E: PairingEngine, S: FiatShamirRng<E::Fr, E::Fq>> SonicKZG10<E, S> {
                                     ck.powers()
                                 };
 
-                                kzg10::KZG10::commit(&powers, &polynomial, hiding_bound, terminator, rng_ref)
+                                kzg10::KZG10::commit(&powers, &polynomial, hiding_bound, terminator, rng_ref, index)
                             }
                         }
                     })

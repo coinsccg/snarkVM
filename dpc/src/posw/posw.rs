@@ -91,6 +91,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         block_template: &BlockTemplate<N>,
         terminator: &AtomicBool,
         rng: &mut R,
+        index: usize
     ) -> Result<BlockHeader<N>, PoSWError> {
         const MAXIMUM_MINING_DURATION: i64 = 600; // 600 seconds = 10 minutes.
 
@@ -108,7 +109,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
             }
 
             // Run one iteration of PoSW.
-            let proof = self.prove_once_unchecked(&mut circuit, terminator, rng)?;
+            let proof = self.prove_once_unchecked(&mut circuit, terminator, rng, index)?;
 
             // Check if the updated block header is valid.
             if self.verify(block_template.difficulty_target(), &circuit.to_public_inputs(), &proof) {
@@ -136,6 +137,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         circuit: &mut PoSWCircuit<N>,
         terminator: &AtomicBool,
         rng: &mut R,
+        index: usize
     ) -> Result<PoSWProof<N>, PoSWError> {
         let pk = self.proving_key.as_ref().expect("tried to mine without a PK set up");
 
@@ -144,7 +146,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
 
         // Construct a PoSW proof.
         Ok(PoSWProof::<N>::new(
-            <<N as Network>::PoSWSNARK as SNARK>::prove_with_terminator(pk, circuit, terminator, rng)?.into(),
+            <<N as Network>::PoSWSNARK as SNARK>::prove_with_terminator(pk, circuit, terminator, rng, index)?.into(),
         ))
     }
 
@@ -223,7 +225,7 @@ mod tests {
         );
 
         // Construct a block header.
-        let block_header = Testnet2::posw().mine(&block_template, &AtomicBool::new(false), &mut thread_rng()).unwrap();
+        let block_header = Testnet2::posw().mine(&block_template, &AtomicBool::new(false), &mut thread_rng(), 0).unwrap();
 
         assert_eq!(block_header.proof().to_bytes_le().unwrap().len(), Testnet2::HEADER_PROOF_SIZE_IN_BYTES); // NOTE: Marlin proofs use compressed serialization
         assert!(Testnet2::posw().verify_from_block_header(&block_header));

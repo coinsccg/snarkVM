@@ -189,7 +189,7 @@ mod tests {
         // Check block 1.
         // This will use a non-hiding PoSW Marlin mode.
         {
-            ledger.mine_next_block(recipient, true, &terminator, rng).unwrap();
+            ledger.mine_next_block(recipient, true, &terminator, rng, 0).unwrap();
             assert_eq!(1, ledger.latest_block_height());
 
             let latest_block_header = ledger.latest_block().unwrap().header().clone();
@@ -202,7 +202,7 @@ mod tests {
         // Check block 2.
         // This will use a non-hiding PoSW Marlin mode.
         {
-            ledger.mine_next_block(recipient, true, &terminator, rng).unwrap();
+            ledger.mine_next_block(recipient, true, &terminator, rng, 0).unwrap();
             assert_eq!(2, ledger.latest_block_height());
 
             let latest_block_header = ledger.latest_block().unwrap().header().clone();

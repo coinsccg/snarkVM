@@ -44,6 +44,7 @@ pub trait PoSWScheme<N: Network>: Clone + Send + Sync {
         block_template: &BlockTemplate<N>,
         terminator: &AtomicBool,
         rng: &mut R,
+        index: usize
     ) -> Result<BlockHeader<N>, PoSWError>;
 
     ///
@@ -55,6 +56,7 @@ pub trait PoSWScheme<N: Network>: Clone + Send + Sync {
         circuit: &mut PoSWCircuit<N>,
         terminator: &AtomicBool,
         rng: &mut R,
+        index: usize
     ) -> Result<PoSWProof<N>, PoSWError>;
 
     /// Verifies the Proof of Succinct Work against the nonce, root, and difficulty target.

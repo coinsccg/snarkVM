@@ -37,12 +37,12 @@ static HAS_CUDA_FAILED: AtomicBool = AtomicBool::new(false);
 pub struct VariableBase;
 
 impl VariableBase {
-    pub fn msm<G: AffineCurve>(bases: &[G], scalars: &[<G::ScalarField as PrimeField>::BigInteger]) -> G::Projective {
+    pub fn msm<G: AffineCurve>(bases: &[G], scalars: &[<G::ScalarField as PrimeField>::BigInteger], index: usize) -> G::Projective {
         // For BLS12-377, we perform variable base MSM using a batched addition technique.
         if TypeId::of::<G>() == TypeId::of::<G1Affine>() {
             #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
             if !HAS_CUDA_FAILED.load(Ordering::SeqCst) {
-                match cuda::msm_cuda(bases, scalars) {
+                match cuda::msm_cuda(bases, scalars, index) {
                     Ok(x) => return x,
                     Err(_e) => {
                         HAS_CUDA_FAILED.store(true, Ordering::SeqCst);
@@ -120,7 +120,7 @@ mod tests {
             let (bases, scalars) = create_scalar_bases::<G1Affine, Fr>(&mut rng, 1 << 10);
             let rust = standard::msm(bases.as_slice(), scalars.as_slice());
 
-            let cuda = cuda::msm_cuda(bases.as_slice(), scalars.as_slice()).unwrap();
+            let cuda = cuda::msm_cuda(bases.as_slice(), scalars.as_slice(), 0).unwrap();
             assert_eq!(rust, cuda);
         }
     }

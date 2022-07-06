@@ -97,7 +97,7 @@ pub fn bad_degree_bound_test<E: PairingEngine, S: FiatShamirRng<E::Fr, E::Fq>>()
             SonicKZG10::<E, S>::trim(&pp, supported_degree, None, supported_degree, Some(degree_bounds.as_slice()))?;
         println!("Trimmed");
 
-        let (comms, rands) = SonicKZG10::<E, S>::commit(&ck, polynomials.iter().map(Into::into), Some(rng))?;
+        let (comms, rands) = SonicKZG10::<E, S>::commit(&ck, polynomials.iter().map(Into::into), Some(rng), 0)?;
 
         let mut query_set = QuerySet::new();
         let mut values = Evaluations::new();
@@ -176,7 +176,7 @@ pub fn lagrange_test_template<E: PairingEngine, S: FiatShamirRng<E::Fr, E::Fq>>(
         )?;
         println!("Trimmed");
 
-        let (comms, rands) = SonicKZG10::<E, S>::commit(&ck, lagrange_polynomials, Some(rng)).unwrap();
+        let (comms, rands) = SonicKZG10::<E, S>::commit(&ck, lagrange_polynomials, Some(rng), 0).unwrap();
 
         // Construct query set
         let mut query_set = QuerySet::new();
@@ -297,7 +297,7 @@ where
             SonicKZG10::<E, S>::trim(&pp, supported_degree, None, supported_hiding_bound, degree_bounds.as_deref())?;
         println!("Trimmed");
 
-        let (comms, rands) = SonicKZG10::<E, S>::commit(&ck, polynomials.iter().map(Into::into), Some(rng))?;
+        let (comms, rands) = SonicKZG10::<E, S>::commit(&ck, polynomials.iter().map(Into::into), Some(rng), 0)?;
 
         // Construct query set
         let mut query_set = QuerySet::new();
@@ -420,7 +420,7 @@ fn equation_test_template<E: PairingEngine, S: FiatShamirRng<E::Fr, E::Fq>>(
             SonicKZG10::<E, S>::trim(&pp, supported_degree, None, supported_hiding_bound, degree_bounds.as_deref())?;
         println!("Trimmed");
 
-        let (comms, rands) = SonicKZG10::<E, S>::commit(&ck, polynomials.iter().map(Into::into), Some(rng))?;
+        let (comms, rands) = SonicKZG10::<E, S>::commit(&ck, polynomials.iter().map(Into::into), Some(rng), 0)?;
 
         // Let's construct our equations
         let mut linear_combinations = Vec::new();

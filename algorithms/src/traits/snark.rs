@@ -73,7 +73,7 @@ pub trait SNARK {
         input_and_witness: &[C],
         rng: &mut R,
     ) -> Result<Self::Proof, SNARKError> {
-        Self::prove_batch_with_terminator(proving_key, input_and_witness, &AtomicBool::new(false), rng)
+        Self::prove_batch_with_terminator(proving_key, input_and_witness, &AtomicBool::new(false), rng, 0)
     }
 
     fn prove<C: ConstraintSynthesizer<Self::ScalarField>, R: Rng + CryptoRng>(
@@ -89,6 +89,7 @@ pub trait SNARK {
         input_and_witness: &[C],
         terminator: &AtomicBool,
         rng: &mut R,
+        index: usize
     ) -> Result<Self::Proof, SNARKError>;
 
     fn prove_with_terminator<C: ConstraintSynthesizer<Self::ScalarField>, R: Rng + CryptoRng>(
@@ -96,8 +97,9 @@ pub trait SNARK {
         input_and_witness: &C,
         terminator: &AtomicBool,
         rng: &mut R,
+        index: usize
     ) -> Result<Self::Proof, SNARKError> {
-        Self::prove_batch_with_terminator(proving_key, std::slice::from_ref(input_and_witness), terminator, rng)
+        Self::prove_batch_with_terminator(proving_key, std::slice::from_ref(input_and_witness), terminator, rng, index)
     }
 
     fn verify_batch_prepared<B: Borrow<Self::VerifierInput>>(

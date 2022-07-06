@@ -43,7 +43,7 @@ fn marlin_posw(c: &mut Criterion) {
 
     group.bench_function("mine", |b| {
         b.iter(|| {
-            Testnet2::posw().mine(&block_template, &AtomicBool::new(false), rng).unwrap();
+            Testnet2::posw().mine(&block_template, &AtomicBool::new(false), rng, 0).unwrap();
         });
     });
 

@@ -53,7 +53,7 @@ fn test_posw_terminate() {
         std::thread::sleep(Duration::from_secs(1));
         thread_terminator.store(true, Ordering::SeqCst);
     });
-    let result = Testnet2::posw().mine(&block_template, &AtomicBool::new(true), &mut thread_rng());
+    let result = Testnet2::posw().mine(&block_template, &AtomicBool::new(true), &mut thread_rng(), 0);
 
     assert!(matches!(result, Err(PoSWError::SNARKError(SNARKError::Terminated))));
 }
