@@ -80,7 +80,7 @@ full = ["algorithms", "circuit", "console", "curves", "dpc", "fields", "gadgets"
 
 ## snarkVM CLI ##
 cli = ["anyhow", "clap", "colored", "self_update", "thiserror"]
-file = ["circuit", "utilities"]
+file = ["circuit", "utilities", "dpc"]
 
 ## snarkVM workspace ##
 algorithms = ["snarkvm-algorithms"]
