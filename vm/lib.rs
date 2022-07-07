@@ -81,6 +81,9 @@ pub mod traits {
 
     #[cfg(feature = "parameters")]
     pub use crate::parameters::traits::*;
+
+    #[cfg(feature = "dpc")]
+    pub use crate::dpc::traits::*;
 }
 
 pub mod prelude {
@@ -100,4 +103,7 @@ pub mod prelude {
 
     #[cfg(feature = "utilities")]
     pub use crate::utilities::*;
+
+    #[cfg(feature = "dpc")]
+    pub use crate::dpc::prelude::*;
 }
