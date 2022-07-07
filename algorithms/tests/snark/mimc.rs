@@ -213,7 +213,7 @@ fn test_mimc_groth_16() {
             };
 
             // Create a groth16 proof with our parameters.
-            let proof = create_random_proof(&c, &params, rng).unwrap();
+            let proof = create_random_proof(&c, &params, rng, 0).unwrap();
             assert!(verify_proof(&pvk, &proof, &[image]).unwrap());
 
             // proof.write_le(&mut proof_vec).unwrap();

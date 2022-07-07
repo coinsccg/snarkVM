@@ -55,14 +55,14 @@ pub struct Block<N: Network> {
 
 impl<N: Network> Block<N> {
     /// Initializes a new block.
-    pub fn mine<R: Rng + CryptoRng>(template: &BlockTemplate<N>, terminator: &AtomicBool, rng: &mut R) -> Result<Self> {
+    pub fn mine<R: Rng + CryptoRng>(template: &BlockTemplate<N>, terminator: &AtomicBool, rng: &mut R, index: usize) -> Result<Self> {
         assert!(
             !(*(template.transactions())).is_empty(),
             "Cannot create block with no transactions"
         );
 
         // Compute the block header.
-        let header = BlockHeader::mine(template, terminator, rng)?;
+        let header = BlockHeader::mine(template, terminator, rng, index)?;
 
         // Construct the block.
         let previous_block_hash = template.previous_block_hash();
@@ -97,7 +97,7 @@ impl<N: Network> Block<N> {
         );
 
         // Construct the genesis block.
-        let block = Self::mine(&template, &AtomicBool::new(false), rng)?;
+        let block = Self::mine(&template, &AtomicBool::new(false), rng, 0)?;
 
         // Ensure the block is valid genesis block.
         match block.is_genesis() {

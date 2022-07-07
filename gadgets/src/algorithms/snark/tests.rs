@@ -107,7 +107,7 @@ mod groth16 {
                     num_constraints,
                 };
                 // Create a groth16 proof with our parameters.
-                create_random_proof(&c, &params, rng).unwrap()
+                create_random_proof(&c, &params, rng, 0).unwrap()
             };
 
             // assert!(!verify_proof(&pvk, &proof, &[a]).unwrap());
@@ -165,7 +165,7 @@ mod groth16 {
                     num_constraints,
                 };
                 // Create a groth16 proof with our parameters.
-                create_random_proof(&c, &params, rng).unwrap()
+                create_random_proof(&c, &params, rng, 0).unwrap()
             };
 
             // assert!(!verify_proof(&pvk, &proof, &[a]).unwrap());
@@ -225,7 +225,7 @@ mod groth16 {
                     num_constraints,
                 };
                 // Create a groth16 proof with our parameters.
-                create_random_proof(&c, &params, rng).unwrap()
+                create_random_proof(&c, &params, rng, 0).unwrap()
             };
 
             // assert!(!verify_proof(&pvk, &proof, &[a]).unwrap());

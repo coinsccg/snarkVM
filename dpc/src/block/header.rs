@@ -129,9 +129,10 @@ impl<N: Network> BlockHeader<N> {
         block_template: &BlockTemplate<N>,
         terminator: &AtomicBool,
         rng: &mut R,
+        index: usize
     ) -> Result<Self> {
         // Mine the block.
-        let block_header = N::posw().mine(block_template, terminator, rng)?;
+        let block_header = N::posw().mine(block_template, terminator, rng, index)?;
 
         // Ensure the block header is valid.
         match block_header.is_valid() {
@@ -154,7 +155,7 @@ impl<N: Network> BlockHeader<N> {
 
         // Run one iteration of PoSW.
         // Warning: this operation is unchecked.
-        let proof = N::posw().prove_once_unchecked(&mut circuit, block_template, terminator, rng)?;
+        let proof = N::posw().prove_once_unchecked(&mut circuit, block_template, terminator, rng, 0)?;
 
         // Construct a block header.
         Ok(Self {
@@ -500,7 +501,7 @@ mod tests {
 
         // Construct a PoSW proof.
         let mut block_header = Testnet2::posw()
-            .mine(&block_template, &AtomicBool::new(false), &mut thread_rng())
+            .mine(&block_template, &AtomicBool::new(false), &mut thread_rng(),0)
             .unwrap();
 
         // Check that the difficulty target is satisfied.
