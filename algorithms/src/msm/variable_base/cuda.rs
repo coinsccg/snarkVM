@@ -353,7 +353,7 @@ fn init_cuda_dispatch() {
 }
 
 lazy_static::lazy_static! {
-    static ref CUDA_DISPATCH: Rwlock<Vec<crossbeam_channel::Sender<CudaRequest>>> = Rwlock::New(Vec::new());
+    static ref CUDA_DISPATCH: RwLock<Vec<crossbeam_channel::Sender<CudaRequest>>> = RwLock::New(Vec::new());
 }
 
 
