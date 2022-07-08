@@ -198,7 +198,7 @@ fn load_cuda_program(device: &Device) -> Result<Program, GPUError> {
     // let cuda_kernel = std::fs::read(file_path.clone())?;
     let cuda_kernel  = include_bytes!("./blst_377_cuda/msm.fatbin");
     // Load the cuda program from the kernel bytes.
-    let cuda_program = match cuda::Program::from_bytes(cuda_device, &cuda_kernel) {
+    let cuda_program = match cuda::Program::from_bytes(cuda_device, cuda_kernel) {
         Ok(program) => program,
         Err(err) => {
             // Delete the failing cuda kernel.
@@ -353,7 +353,7 @@ fn init_cuda_dispatch() {
 }
 
 lazy_static::lazy_static! {
-    static ref CUDA_DISPATCH: RwLock<Vec<crossbeam_channel::Sender<CudaRequest>>> = RwLock::New(Vec::new());
+    static ref CUDA_DISPATCH: RwLock<Vec<crossbeam_channel::Sender<CudaRequest>>> = RwLock::new(Vec::new());
 }
 
 
@@ -367,7 +367,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
     }
 
     if let Ok(dispatchers) = CUDA_DISPATCH.read() {
-        if dispatchers.len() = 0 {
+        if dispatchers.len() == 0 {
             init_cuda_dispatch();
         }
     }
@@ -388,7 +388,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
 
     let (sender, receiver) = crossbeam_channel::bounded(1);
     if let Ok(dispatcher) = CUDA_DISPATCH.read() {
-        if Some(dispatcher_sender) = dispatcher.get(index){
+        if let Some(dispatcher_sender) = dispatcher.get(index){
             dispatcher_sender.send(CudaRequest {
                 bases: unsafe { std::mem::transmute(bases.to_vec()) },
                 scalars: unsafe { std::mem::transmute(scalars.to_vec()) },
