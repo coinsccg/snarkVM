@@ -24,6 +24,7 @@ use snarkvm_utilities::BitIteratorBE;
 use rust_gpu_tools::{cuda, program_closures, Device, GPUError, Program};
 
 use std::{any::TypeId, path::Path, process::Command};
+use std::sync::RwLock;
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -63,29 +64,29 @@ fn generate_cuda_binary<P: AsRef<Path>>(file_path: P, debug: bool) -> Result<(),
 
     // Generate the parent directory.
     let mut resource_path = aleo_std::aleo_dir();
-    resource_path.push("resources/cuda/");
+    resource_path.push("./blst_377_cuda/");
     std::fs::create_dir_all(resource_path)?;
 
     // TODO (raychu86): Fix this approach to generating files. Should just read all files in the `blst_377_cuda` directory.
     // Store the `.cu` and `.h` files temporarily for fatbin generation
     let mut asm_cuda_path = aleo_std::aleo_dir();
     let mut asm_cuda_h_path = aleo_std::aleo_dir();
-    asm_cuda_path.push("resources/cuda/asm_cuda.cu");
-    asm_cuda_h_path.push("resources/cuda/asm_cuda.h");
+    asm_cuda_path.push("./blst_377_cuda/asm_cuda.cu");
+    asm_cuda_h_path.push("./blst_377_cuda/asm_cuda.h");
 
     let mut blst_377_ops_path = aleo_std::aleo_dir();
     let mut blst_377_ops_h_path = aleo_std::aleo_dir();
-    blst_377_ops_path.push("resources/cuda/blst_377_ops.cu");
-    blst_377_ops_h_path.push("resources/cuda/blst_377_ops.h");
+    blst_377_ops_path.push("./blst_377_cuda/blst_377_ops.cu");
+    blst_377_ops_h_path.push("./blst_377_cuda/blst_377_ops.h");
 
     let mut msm_path = aleo_std::aleo_dir();
-    msm_path.push("resources/cuda/msm.cu");
+    msm_path.push("./blst_377_cuda/msm.cu");
 
     let mut types_path = aleo_std::aleo_dir();
-    types_path.push("resources/cuda/types.h");
+    types_path.push("./blst_377_cuda/types.h");
 
     let mut tests_path = aleo_std::aleo_dir();
-    tests_path.push("resources/cuda/tests.cu");
+    tests_path.push("./blst_377_cuda/tests.cu");
 
     // Write all the files to the relative path.
     {
@@ -176,7 +177,7 @@ fn load_cuda_program(device: &Device) -> Result<Program, GPUError> {
 
     // Find the path to the msm fatbin kernel
     // let mut file_path = aleo_std::aleo_dir();
-    // file_path.push("resources/cuda/msm.fatbin");
+    // file_path.push("./blst_377_cuda/msm.fatbin");
 
     // If the file does not exist, regenerate the fatbin.
     // if !file_path.exists() {
@@ -195,13 +196,13 @@ fn load_cuda_program(device: &Device) -> Result<Program, GPUError> {
     );
 
     // let cuda_kernel = std::fs::read(file_path.clone())?;
-    let cuda_kernel = include_bytes!("./blst_377_cuda");
+    let cuda_kernel  = include_bytes!("./blst_377_cuda/msm.fatbin");
     // Load the cuda program from the kernel bytes.
     let cuda_program = match cuda::Program::from_bytes(cuda_device, &cuda_kernel) {
         Ok(program) => program,
         Err(err) => {
             // Delete the failing cuda kernel.
-            std::fs::remove_file(file_path)?;
+            // std::fs::remove_file(file_path)?;
             return Err(err);
         }
     };

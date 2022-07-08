@@ -28,7 +28,7 @@ mod standard;
 #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 mod cuda;
 
-#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
+// #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 static HAS_CUDA_FAILED: AtomicBool = AtomicBool::new(false);
 
 pub struct VariableBaseMSM;
