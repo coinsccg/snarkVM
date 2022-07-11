@@ -139,7 +139,7 @@ impl<
 
         let commit_time = start_timer!(|| "Commit to index polynomials");
         let (circuit_commitments, circuit_commitment_randomness): (_, _) =
-            PC::commit(&committer_key, circuit.iter().chain(vanishing_polys.iter()), None)?;
+            PC::commit(&committer_key, circuit.iter().chain(vanishing_polys.iter()), None, 0)?;
         end_timer!(commit_time);
 
         let circuit_commitments = circuit_commitments
@@ -225,7 +225,7 @@ impl<
 
         let commit_time = start_timer!(|| "Commit to index polynomials");
         let (circuit_commitments, circuit_commitment_randomness): (_, _) =
-            PC::commit(&committer_key, index.iter().chain(vanishing_polynomials.iter()), None)?;
+            PC::commit(&committer_key, index.iter().chain(vanishing_polynomials.iter()), None, 0)?;
         end_timer!(commit_time);
 
         let circuit_commitments = circuit_commitments
@@ -257,7 +257,7 @@ impl<
         circuit: &C,
         zk_rng: &mut R,
     ) -> Result<Proof<TargetField, BaseField, PC>, MarlinError> {
-        Self::prove_with_terminator(circuit_proving_key, circuit, &AtomicBool::new(false), zk_rng)
+        Self::prove_with_terminator(circuit_proving_key, circuit, &AtomicBool::new(false), zk_rng, 0)
     }
 
     /// Same as [`prove`] with an added termination flag, [`terminator`].
