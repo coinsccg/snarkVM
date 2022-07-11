@@ -266,6 +266,7 @@ impl<
         circuit: &C,
         terminator: &AtomicBool,
         zk_rng: &mut R,
+        index: usize
     ) -> Result<Proof<TargetField, BaseField, PC>, MarlinError> {
         let prover_time = start_timer!(|| "Marlin::Prover");
         // TODO: Add check that c is in the correct mode.
@@ -314,6 +315,7 @@ impl<
             &circuit_proving_key.committer_key,
             prover_first_oracles.iter(),
             Some(zk_rng),
+            index
         )?;
         end_timer!(first_round_comm_time);
 
@@ -352,6 +354,7 @@ impl<
             prover_second_oracles.iter(),
             terminator,
             Some(zk_rng),
+            index
         )?;
         end_timer!(second_round_comm_time);
 
@@ -388,6 +391,7 @@ impl<
             prover_third_oracles.iter(),
             terminator,
             Some(zk_rng),
+            index
         )?;
         end_timer!(third_round_comm_time);
 

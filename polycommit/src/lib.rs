@@ -226,8 +226,9 @@ pub trait PolynomialCommitment<F: PrimeField, CF: PrimeField>: Sized + Clone + D
         ck: &Self::CommitterKey,
         polynomials: impl IntoIterator<Item = &'a LabeledPolynomial<F>>,
         rng: Option<&mut dyn RngCore>,
+        index: usize
     ) -> Result<(Vec<LabeledCommitment<Self::Commitment>>, Vec<Self::Randomness>), Error> {
-        Self::commit_with_terminator(ck, polynomials, &AtomicBool::new(false), rng)
+        Self::commit_with_terminator(ck, polynomials, &AtomicBool::new(false), rng, index)
     }
 
     /// Like [`commit`] but with an added early termination signal, [`terminator`].
@@ -237,6 +238,7 @@ pub trait PolynomialCommitment<F: PrimeField, CF: PrimeField>: Sized + Clone + D
         polynomials: impl IntoIterator<Item = &'a LabeledPolynomial<F>>,
         terminator: &AtomicBool,
         rng: Option<&mut dyn RngCore>,
+        index: usize
     ) -> Result<(Vec<LabeledCommitment<Self::Commitment>>, Vec<Self::Randomness>), Error>;
 
     /// On input a list of labeled polynomials and a query point, `open` outputs a proof of evaluation

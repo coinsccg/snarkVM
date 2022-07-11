@@ -99,7 +99,7 @@ where
         index: usize
     ) -> Result<Self::Proof, SNARKError> {
         match MarlinCore::<TargetField, BaseField, PC, FS, MM>::prove_with_terminator(
-            parameters, circuit, terminator, rng,
+            parameters, circuit, terminator, rng, index
         ) {
             Ok(res) => Ok(res),
             Err(e) => Err(SNARKError::from(e)),

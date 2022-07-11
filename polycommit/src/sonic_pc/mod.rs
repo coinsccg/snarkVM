@@ -240,6 +240,7 @@ impl<E: PairingEngine> PolynomialCommitment<E::Fr, E::Fq> for SonicKZG10<E> {
         polynomials: impl IntoIterator<Item = &'a LabeledPolynomial<E::Fr>>,
         terminator: &AtomicBool,
         rng: Option<&mut dyn RngCore>,
+        index: usize
     ) -> Result<(Vec<LabeledCommitment<Self::Commitment>>, Vec<Self::Randomness>), Error> {
         let rng = &mut crate::optional_rng::OptionalRng(rng);
         let commit_time = start_timer!(|| "Committing to polynomials");
@@ -292,6 +293,7 @@ impl<E: PairingEngine> PolynomialCommitment<E::Fr, E::Fq> for SonicKZG10<E> {
                     hiding_bound,
                     terminator,
                     rng.as_mut().map(|s| s as _),
+                    index
                 )?;
                 end_timer!(commit_time);
                 Ok((LabeledCommitment::new(label.to_string(), comm, degree_bound), rand))

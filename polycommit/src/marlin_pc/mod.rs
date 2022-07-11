@@ -207,6 +207,7 @@ impl<E: PairingEngine> PolynomialCommitment<E::Fr, E::Fq> for MarlinKZG10<E> {
         polynomials: impl IntoIterator<Item = &'a LabeledPolynomial<E::Fr>>,
         terminator: &AtomicBool,
         rng: Option<&mut dyn RngCore>,
+        index: usize
     ) -> Result<(Vec<LabeledCommitment<Self::Commitment>>, Vec<Self::Randomness>), Error> {
         let rng = &mut crate::optional_rng::OptionalRng(rng);
         let commit_time = start_timer!(|| "Committing to polynomials");
@@ -244,13 +245,13 @@ impl<E: PairingEngine> PolynomialCommitment<E::Fr, E::Fq> for MarlinKZG10<E> {
                 hiding_bound,
             ));
 
-            let (comm, rand) = kzg10::KZG10::commit(&ck.powers(), polynomial, hiding_bound, terminator, Some(rng))?;
+            let (comm, rand) = kzg10::KZG10::commit(&ck.powers(), polynomial, hiding_bound, terminator, Some(rng), index)?;
             let (shifted_comm, shifted_rand) = if let Some(degree_bound) = degree_bound {
                 let shifted_powers = ck
                     .shifted_powers(degree_bound)
                     .ok_or(Error::UnsupportedDegreeBound(degree_bound))?;
                 let (shifted_comm, shifted_rand) =
-                    kzg10::KZG10::commit(&shifted_powers, polynomial, hiding_bound, terminator, Some(rng))?;
+                    kzg10::KZG10::commit(&shifted_powers, polynomial, hiding_bound, terminator, Some(rng), index)?;
                 (Some(shifted_comm), Some(shifted_rand))
             } else {
                 (None, None)

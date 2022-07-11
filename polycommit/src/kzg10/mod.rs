@@ -228,6 +228,7 @@ impl<E: PairingEngine> KZG10<E> {
         hiding_bound: Option<usize>,
         terminator: &AtomicBool,
         rng: Option<&mut dyn RngCore>,
+        index: usize
     ) -> Result<(Commitment<E>, Randomness<E>), Error> {
         Self::check_degree_is_too_large(polynomial.degree(), powers.size())?;
 
@@ -240,7 +241,7 @@ impl<E: PairingEngine> KZG10<E> {
         let (num_leading_zeros, plain_coeffs) = skip_leading_zeros_and_convert_to_bigints(polynomial);
 
         let msm_time = start_timer!(|| "MSM to compute commitment to plaintext poly");
-        let mut commitment = VariableBaseMSM::multi_scalar_mul(&powers.powers_of_g[num_leading_zeros..], &plain_coeffs, 0);
+        let mut commitment = VariableBaseMSM::multi_scalar_mul(&powers.powers_of_g[num_leading_zeros..], &plain_coeffs, index);
         end_timer!(msm_time);
 
         if terminator.load(Ordering::Relaxed) {
@@ -261,7 +262,7 @@ impl<E: PairingEngine> KZG10<E> {
         let random_ints = convert_to_bigints(&randomness.blinding_polynomial.coeffs);
         let msm_time = start_timer!(|| "MSM to compute commitment to random poly");
         let random_commitment =
-            VariableBaseMSM::multi_scalar_mul(&powers.powers_of_gamma_g, random_ints.as_slice(), 0).into_affine();
+            VariableBaseMSM::multi_scalar_mul(&powers.powers_of_gamma_g, random_ints.as_slice(), index).into_affine();
         end_timer!(msm_time);
 
         if terminator.load(Ordering::Relaxed) {
