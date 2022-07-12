@@ -366,10 +366,13 @@ pub(super) fn msm_cuda<G: AffineCurve>(
         unimplemented!("trying to use cuda for unsupported curve");
     }
 
+    let mut len = 0;
     if let Ok(dispatchers) = CUDA_DISPATCH.read() {
-        if dispatchers.len() == 0 {
-            init_cuda_dispatch();
-        }
+        len = dispatchers.len();
+    }
+
+    if len == 0 {
+        init_cuda_dispatch();
     }
 
     match bases.len() < scalars.len() {
