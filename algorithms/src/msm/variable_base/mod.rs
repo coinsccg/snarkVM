@@ -65,6 +65,7 @@ impl VariableBaseMSM {
                 }
             }
         }
+        eprintln!("-------------------------------------------------------------------------------------------vm2222");
         standard::msm_standard(bases, scalars)
     }
 }
