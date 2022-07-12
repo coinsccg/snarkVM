@@ -53,7 +53,6 @@ impl VariableBaseMSM {
             #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
             {
                 if index == 100 {
-                    eprintln!("----------------------------------------------------------------------------------------------{}", index);
                     return standard::msm_standard(bases, scalars);
                 }
                 if !HAS_CUDA_FAILED.load(Ordering::SeqCst) {
