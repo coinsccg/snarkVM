@@ -365,13 +365,14 @@ pub(super) fn msm_cuda<G: AffineCurve>(
     if TypeId::of::<G>() != TypeId::of::<G1Affine>() {
         unimplemented!("trying to use cuda for unsupported curve");
     }
-
+    eprintln!("----------------------------------------------------------------------------run gpu44");
     if let Ok(dispatchers) = CUDA_DISPATCH.read() {
         if dispatchers.len() == 0 {
+            eprintln!("----------------------------------------------------------------------------run gpu66");
             init_cuda_dispatch();
         }
     }
-
+    eprintln!("----------------------------------------------------------------------------run gpu55");
     match bases.len() < scalars.len() {
         true => scalars = &scalars[..bases.len()],
         false => bases = &bases[..scalars.len()],
