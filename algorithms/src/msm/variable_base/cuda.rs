@@ -389,6 +389,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
     let (sender, receiver) = crossbeam_channel::bounded(1);
     if let Ok(dispatcher) = CUDA_DISPATCH.read() {
         if let Some(dispatcher_sender) = dispatcher.get(index){
+            eprintln!("----------------------------------------------------------------------------run gpu11");
             dispatcher_sender.send(CudaRequest {
                 bases: unsafe { std::mem::transmute(bases.to_vec()) },
                 scalars: unsafe { std::mem::transmute(scalars.to_vec()) },

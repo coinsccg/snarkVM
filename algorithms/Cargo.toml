@@ -213,7 +213,6 @@ default = [
   "snarkvm-fields/default",
   "snarkvm-r1cs/default",
   "snarkvm-utilities/default",
-  "cuda"
 ]
 full = [
   "commitment",
