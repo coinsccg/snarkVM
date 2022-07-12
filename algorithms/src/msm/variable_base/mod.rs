@@ -50,7 +50,6 @@ impl VariableBaseMSM {
         index: usize
     ) -> G::Projective {
         if TypeId::of::<G>() == TypeId::of::<G1Affine>() {
-            eprintln!("-------------------------------------------------------------------------------------------vm");
             #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
             {
                 if !HAS_CUDA_FAILED.load(Ordering::SeqCst) {
@@ -65,7 +64,6 @@ impl VariableBaseMSM {
                 }
             }
         }
-        eprintln!("-------------------------------------------------------------------------------------------vm2222");
         standard::msm_standard(bases, scalars)
     }
 }

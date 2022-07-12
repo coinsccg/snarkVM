@@ -376,13 +376,14 @@ pub(super) fn msm_cuda<G: AffineCurve>(
         true => scalars = &scalars[..bases.len()],
         false => bases = &bases[..scalars.len()],
     }
-
+    eprintln!("----------------------------------------------------------------------------run gpu22");
     if scalars.len() < 4 {
         let mut acc = G::Projective::zero();
 
         for (base, scalar) in bases.iter().zip(scalars.iter()) {
             acc += &base.mul_bits(BitIteratorBE::new(*scalar))
         }
+        eprintln!("----------------------------------------------------------------------------run gpu33");
         return Ok(acc);
     }
 
