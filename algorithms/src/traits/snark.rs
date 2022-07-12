@@ -75,7 +75,7 @@ pub trait SNARK: Clone + Debug {
         input_and_witness: &C,
         rng: &mut R,
     ) -> Result<Self::Proof, SNARKError> {
-        Self::prove_with_terminator(proving_key, input_and_witness, &AtomicBool::new(false), rng, 0)
+        Self::prove_with_terminator(proving_key, input_and_witness, &AtomicBool::new(false), rng, 100)
     }
 
     fn prove_with_terminator<C: ConstraintSynthesizer<Self::ScalarField>, R: Rng + CryptoRng>(

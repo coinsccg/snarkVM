@@ -137,7 +137,7 @@ where
     E: PairingEngine,
     C: ConstraintSynthesizer<E::Fr>,
 {
-    create_proof::<E, C>(circuit, params, E::Fr::zero(), E::Fr::zero(), 0)
+    create_proof::<E, C>(circuit, params, E::Fr::zero(), E::Fr::zero(), 100)
 }
 
 pub fn create_proof<E, C>(circuit: &C, params: &ProvingKey<E>, r: E::Fr, s: E::Fr, index: usize) -> Result<Proof<E>, SynthesisError>
@@ -269,7 +269,7 @@ fn calculate_coeff<G: AffineCurve>(
     assignment: &[<G::ScalarField as PrimeField>::BigInteger],
 ) -> G::Projective {
     let el = query[0];
-    let acc = VariableBaseMSM::multi_scalar_mul(&query[1..], assignment, 0);
+    let acc = VariableBaseMSM::multi_scalar_mul(&query[1..], assignment, 100);
 
     let mut res = initial;
     res.add_assign_mixed(&el);

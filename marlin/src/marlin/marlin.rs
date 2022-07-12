@@ -257,7 +257,7 @@ impl<
         circuit: &C,
         zk_rng: &mut R,
     ) -> Result<Proof<TargetField, BaseField, PC>, MarlinError> {
-        Self::prove_with_terminator(circuit_proving_key, circuit, &AtomicBool::new(false), zk_rng, 0)
+        Self::prove_with_terminator(circuit_proving_key, circuit, &AtomicBool::new(false), zk_rng, 100)
     }
 
     /// Same as [`prove`] with an added termination flag, [`terminator`].

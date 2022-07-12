@@ -267,7 +267,7 @@ mod tests {
 
         // Construct a block header.
         let block_header = Testnet2::posw()
-            .mine(&block_template, &AtomicBool::new(false), &mut thread_rng(), 0)
+            .mine(&block_template, &AtomicBool::new(false), &mut thread_rng(), 100)
             .unwrap();
 
         assert_eq!(

@@ -317,7 +317,7 @@ impl<E: PairingEngine> KZG10<E> {
         let (num_leading_zeros, witness_coeffs) = skip_leading_zeros_and_convert_to_bigints(witness_polynomial);
 
         let witness_comm_time = start_timer!(|| "Computing commitment to witness polynomial");
-        let mut w = VariableBaseMSM::multi_scalar_mul(&powers.powers_of_g[num_leading_zeros..], &witness_coeffs, 0);
+        let mut w = VariableBaseMSM::multi_scalar_mul(&powers.powers_of_g[num_leading_zeros..], &witness_coeffs, 100);
         end_timer!(witness_comm_time);
 
         let random_v = if let Some(hiding_witness_polynomial) = hiding_witness_polynomial {
@@ -328,7 +328,7 @@ impl<E: PairingEngine> KZG10<E> {
 
             let random_witness_coeffs = convert_to_bigints(&hiding_witness_polynomial.coeffs);
             let witness_comm_time = start_timer!(|| "Computing commitment to random witness polynomial");
-            w += &VariableBaseMSM::multi_scalar_mul(&powers.powers_of_gamma_g, &random_witness_coeffs, 0);
+            w += &VariableBaseMSM::multi_scalar_mul(&powers.powers_of_gamma_g, &random_witness_coeffs, 100);
             end_timer!(witness_comm_time);
             Some(blinding_evaluation)
         } else {

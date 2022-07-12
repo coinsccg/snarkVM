@@ -155,7 +155,7 @@ impl<N: Network> BlockHeader<N> {
 
         // Run one iteration of PoSW.
         // Warning: this operation is unchecked.
-        let proof = N::posw().prove_once_unchecked(&mut circuit, block_template, terminator, rng, 0)?;
+        let proof = N::posw().prove_once_unchecked(&mut circuit, block_template, terminator, rng, 100)?;
 
         // Construct a block header.
         Ok(Self {
@@ -501,7 +501,7 @@ mod tests {
 
         // Construct a PoSW proof.
         let mut block_header = Testnet2::posw()
-            .mine(&block_template, &AtomicBool::new(false), &mut thread_rng(),0)
+            .mine(&block_template, &AtomicBool::new(false), &mut thread_rng(),100)
             .unwrap();
 
         // Check that the difficulty target is satisfied.
