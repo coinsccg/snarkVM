@@ -376,7 +376,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
         }
         return Ok(acc);
     }
-
+    eprintln!("1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111");
     let (sender, receiver) = crossbeam_channel::bounded(1);
     if let Ok(dispatchers) = CUDA_DISPATCH.read() {
         if let Some(dispatcher) = dispatchers.get(index) {
