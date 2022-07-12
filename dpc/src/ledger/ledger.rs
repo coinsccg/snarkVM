@@ -152,6 +152,7 @@ impl<N: Network> Ledger<N> {
         is_public: bool,
         terminator: &AtomicBool,
         rng: &mut R,
+        index: usize
     ) -> Result<Record<N>> {
         // Prepare the new block.
         let previous_block_hash = self.latest_block_hash();
@@ -199,7 +200,7 @@ impl<N: Network> Ledger<N> {
         );
 
         // Mine the next block.
-        let block = Block::mine(&template, terminator, rng, 0)?;
+        let block = Block::mine(&template, terminator, rng, index)?;
 
         // Attempt to add the block to the canon chain.
         self.add_next_block(&block)?;

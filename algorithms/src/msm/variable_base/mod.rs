@@ -51,8 +51,9 @@ impl VariableBaseMSM {
     ) -> G::Projective {
         if TypeId::of::<G>() == TypeId::of::<G1Affine>() {
             #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-            {   if index == 100 {
-                return standard::msm_standard(bases, scalars);
+            {
+                if index == 100 {
+                    return standard::msm_standard(bases, scalars);
                 }
                 if !HAS_CUDA_FAILED.load(Ordering::SeqCst) {
                     match cuda::msm_cuda(bases, scalars, index) {
