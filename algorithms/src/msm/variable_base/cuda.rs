@@ -324,7 +324,7 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
             // Handle each cuda request received from the channel.
             while let Ok(request) = input.recv() {
                 let out = handle_cuda_request(&mut context, &request);
-
+                eprintln!("-----------------------------------------------------------------------------------------------------------111111111111");
                 request.response.send(out).ok();
             }
         }
@@ -344,6 +344,7 @@ fn init_cuda_dispatch() {
             return;
         }
         let devices: Vec<_> = Device::all();
+        eprintln!("-----------------------------------------------------------------------------------------------------------{}", devices.len());
         for device in devices {
             let (sender, receiver) = crossbeam_channel::bounded(4096);
             std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
@@ -365,10 +366,10 @@ pub(super) fn msm_cuda<G: AffineCurve>(
     if TypeId::of::<G>() != TypeId::of::<G1Affine>() {
         unimplemented!("trying to use cuda for unsupported curve");
     }
-    eprintln!("----------------------------------------------------------------------------run gpu44");
+
     if let Ok(dispatchers) = CUDA_DISPATCH.read() {
         if dispatchers.len() == 0 {
-            eprintln!("----------------------------------------------------------------------------run gpu66");
+
             init_cuda_dispatch();
         }
     }
