@@ -379,7 +379,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
         true => scalars = &scalars[..bases.len()],
         false => bases = &bases[..scalars.len()],
     }
-    eprintln!("----------------------------------------------------------------------------------------------------------------------");
+
     if scalars.len() < 4 {
         let mut acc = G::Projective::zero();
 
