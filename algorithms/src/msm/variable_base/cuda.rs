@@ -253,7 +253,7 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest) -> Resu
 
         let kernel_1 = program.create_kernel(
             &context.pixel_func_name,
-            window_lengths.len(),
+            window_lengths.len()/4,
             context.num_groups as usize,
         )?;
 
@@ -262,7 +262,7 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest) -> Resu
             .arg(&base_buffer)
             .arg(&scalars_buffer)
             .arg(&window_lengths_buffer)
-            .arg(&((window_lengths.len() as u32)/4))
+            .arg(&(window_lengths.len() as u32))
             .run()?;
 
         let kernel_2 = program.create_kernel(&context.row_func_name, 1, context.num_groups as usize)?;
@@ -270,7 +270,7 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest) -> Resu
         kernel_2
             .arg(&result_buffer)
             .arg(&buckets_buffer)
-            .arg(&((window_lengths.len() as u32)/4))
+            .arg(&(window_lengths.len() as u32))
             .run()?;
 
         let mut results = vec![0u8; LIMB_COUNT as usize * 8 * context.num_groups as usize * 3];
