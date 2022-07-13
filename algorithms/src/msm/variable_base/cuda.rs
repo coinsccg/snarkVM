@@ -42,10 +42,10 @@ struct CudaContext {
     program: Program,
 }
 
-const SCALAR_BITS: usize = 512;
+const SCALAR_BITS: usize = 253;
 const BIT_WIDTH: usize = 1;
 const LIMB_COUNT: usize = 6;
-const WINDOW_SIZE: u32 = 512; // must match in cuda source
+const WINDOW_SIZE: u32 = 128; // must match in cuda source
 
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
@@ -262,7 +262,7 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest) -> Resu
             .arg(&base_buffer)
             .arg(&scalars_buffer)
             .arg(&window_lengths_buffer)
-            .arg(&(window_lengths.len() as u32))
+            .arg(&(window_lengths.len() as u32)/4)
             .run()?;
 
         let kernel_2 = program.create_kernel(&context.row_func_name, 1, context.num_groups as usize)?;
@@ -270,7 +270,7 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest) -> Resu
         kernel_2
             .arg(&result_buffer)
             .arg(&buckets_buffer)
-            .arg(&(window_lengths.len() as u32))
+            .arg(&(window_lengths.len() as u32)/4)
             .run()?;
 
         let mut results = vec![0u8; LIMB_COUNT as usize * 8 * context.num_groups as usize * 3];
