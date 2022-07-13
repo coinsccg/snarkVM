@@ -253,7 +253,7 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest) -> Resu
 
         let kernel_1 = program.create_kernel(
             &context.pixel_func_name,
-            window_lengths.len()/4,
+            window_lengths.len(),
             context.num_groups as usize,
         )?;
 
