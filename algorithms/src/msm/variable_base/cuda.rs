@@ -45,7 +45,7 @@ struct CudaContext {
 const SCALAR_BITS: usize = 253;
 const BIT_WIDTH: usize = 1;
 const LIMB_COUNT: usize = 6;
-const WINDOW_SIZE: u32 = 256; // must match in cuda source
+const WINDOW_SIZE: u32 = 1024; // must match in cuda source
 
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
@@ -278,10 +278,9 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest) -> Resu
 
         Ok(results)
     });
-    eprintln!("--------------------------------------------------------------------------------------{}", window_lengths.len());
-    eprintln!("-------------------------------------------------------------------------------------start ");
+
     let mut out = context.program.run(closures, ())?;
-    eprintln!("-------------------------------------------------------------------------------------end ");
+
     let base_size = std::mem::size_of::<<<G1Affine as AffineCurve>::BaseField as PrimeField>::BigInteger>();
 
     let windows = unsafe {
