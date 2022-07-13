@@ -42,7 +42,7 @@ struct CudaContext {
     program: Program,
 }
 
-const SCALAR_BITS: usize = 253;
+const SCALAR_BITS: usize = 512;
 const BIT_WIDTH: usize = 1;
 const LIMB_COUNT: usize = 6;
 const WINDOW_SIZE: u32 = 1024; // must match in cuda source
