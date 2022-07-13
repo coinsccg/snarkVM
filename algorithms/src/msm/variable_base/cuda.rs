@@ -278,9 +278,10 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest) -> Resu
 
         Ok(results)
     });
-
+    eprintln!("--------------------------------------------------------------------------------------{}", window_lengths.len());
+    eprintln!("-------------------------------------------------------------------------------------start ");
     let mut out = context.program.run(closures, ())?;
-
+    eprintln!("-------------------------------------------------------------------------------------end ");
     let base_size = std::mem::size_of::<<<G1Affine as AffineCurve>::BaseField as PrimeField>::BigInteger>();
 
     let windows = unsafe {
