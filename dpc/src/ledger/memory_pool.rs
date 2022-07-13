@@ -68,7 +68,8 @@ impl<N: Network> MemoryPool<N> {
         // Ensure the transaction does not already exist in the memory pool.
         let transaction_id = transaction.transaction_id();
         if self.transactions.contains_key(&transaction_id) {
-            return Err(anyhow!("Transaction already exists in memory pool"));
+            // return Err(anyhow!("Transaction already exists in memory pool"));
+            return Ok(());
         }
 
         // Ensure the memory pool does not already contain a given serial numbers.
