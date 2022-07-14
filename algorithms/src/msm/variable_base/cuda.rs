@@ -347,9 +347,7 @@ fn init_cuda_dispatch(index: usize) {
         let device = devices[index];
         let (sender, receiver) = crossbeam_channel::bounded(4096);
         std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
-        // if dispatchers.len() <= devices.len() {
         dispatchers.push(sender);
-        // }
 
         // for device in devices {
         //     let (sender, receiver) = crossbeam_channel::bounded(4096);
@@ -399,6 +397,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
 
     let (sender, receiver) = crossbeam_channel::bounded(1);
     if let Ok(dispatcher) = CUDA_DISPATCH.read() {
+        let idx = dispatcher.len() - 1;
         if let Some(dispatcher_sender) = dispatcher.get(dispatcher.len() - 1){
             dispatcher_sender.send(CudaRequest {
                 bases: unsafe { std::mem::transmute(bases.to_vec()) },
@@ -407,12 +406,19 @@ pub(super) fn msm_cuda<G: AffineCurve>(
             })
                 .map_err(|_| GPUError::DeviceNotFound)?;
             match receiver.recv() {
-                Ok(x) => unsafe { std::mem::transmute_copy(&x) },
+                Ok(x) => {
+                    drop(dispatcher);
+                    if let Ok(mut dispatcher) = CUDA_DISPATCH.write() {
+                        dispatcher.remove(idx);
+                    }
+                    unsafe { std::mem::transmute_copy(&x) }
+                },
                 Err(_) => Err(GPUError::DeviceNotFound),
             }
         } else {
             Err(GPUError::DeviceNotFound)
         }
+
     } else {
         Err(GPUError::DeviceNotFound)
     }
