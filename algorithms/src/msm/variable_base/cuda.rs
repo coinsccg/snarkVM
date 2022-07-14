@@ -24,7 +24,7 @@ use snarkvm_utilities::BitIteratorBE;
 use rust_gpu_tools::{cuda, program_closures, Device, GPUError, Program};
 
 use std::{any::TypeId, path::Path, process::Command};
-use std::sync::RwLock;
+use std::sync::{RwLock, Arc};
 use tokio::task;
 
 
@@ -38,7 +38,6 @@ pub struct CudaRequest {
     response: crossbeam_channel::Sender<Result<G1Projective, GPUError>>,
 }
 
-#[derive(Clone)]
 struct CudaContext {
     num_groups: u32,
     pixel_func_name: String,
@@ -216,101 +215,106 @@ fn load_cuda_program(device: &Device) -> Result<Program, GPUError> {
 }
 
 /// Run the CUDA MSM operation for a given request.
-fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest) -> Result<G1Projective, GPUError> {
-    let mapped_bases: Vec<_> = crate::cfg_iter!(request.bases)
-        .map(|affine| CudaAffine {
-            x: affine.x,
-            y: affine.y,
-        })
-        .collect();
+fn handle_cuda_request(context: &mut Arc<RwLock<CudaContext>>, request: &CudaRequest) -> Result<G1Projective, GPUError> {
+    if let Some(context) = context.read() {
+        let mapped_bases: Vec<_> = crate::cfg_iter!(request.bases)
+            .map(|affine| CudaAffine {
+                x: affine.x,
+                y: affine.y,
+            })
+            .collect();
 
-    let mut window_lengths = (0..(request.scalars.len() as u32 / WINDOW_SIZE))
-        .into_iter()
-        .map(|_| WINDOW_SIZE)
-        .collect::<Vec<u32>>();
-    let overflow_size = request.scalars.len() as u32 - window_lengths.len() as u32 * WINDOW_SIZE;
-    if overflow_size > 0 {
-        window_lengths.push(overflow_size);
+        let mut window_lengths = (0..(request.scalars.len() as u32 / WINDOW_SIZE))
+            .into_iter()
+            .map(|_| WINDOW_SIZE)
+            .collect::<Vec<u32>>();
+        let overflow_size = request.scalars.len() as u32 - window_lengths.len() as u32 * WINDOW_SIZE;
+        if overflow_size > 0 {
+            window_lengths.push(overflow_size);
+        }
+
+        let closures = program_closures!(|program, _arg| -> Result<Vec<u8>, GPUError> {
+            let window_lengths_buffer = program.create_buffer_from_slice(&window_lengths)?;
+            let base_buffer = program.create_buffer_from_slice(&mapped_bases)?;
+            let scalars_buffer = program.create_buffer_from_slice(&request.scalars)?;
+
+            let buckets_buffer = program.create_buffer_from_slice(&vec![
+                0u8;
+                context.num_groups as usize
+                    * window_lengths.len() as usize
+                    * 8
+                    * LIMB_COUNT as usize
+                    * 3
+            ])?;
+            let result_buffer =
+                program.create_buffer_from_slice(&vec![0u8; LIMB_COUNT as usize * 8 * context.num_groups as usize * 3])?;
+
+            // // The global work size follows CUDA's definition and is the number of
+            // // `LOCAL_WORK_SIZE` sized thread groups.
+            // const LOCAL_WORK_SIZE: usize = 256;
+            // let global_work_size =
+            //     (window_lengths.len() * context.num_groups as usize + LOCAL_WORK_SIZE - 1) / LOCAL_WORK_SIZE;
+
+            let kernel_1 = program.create_kernel(
+                &context.pixel_func_name,
+                window_lengths.len(),
+                context.num_groups as usize,
+            )?;
+
+            kernel_1
+                .arg(&buckets_buffer)
+                .arg(&base_buffer)
+                .arg(&scalars_buffer)
+                .arg(&window_lengths_buffer)
+                .arg(&(window_lengths.len() as u32))
+                .run()?;
+
+            let kernel_2 = program.create_kernel(&context.row_func_name, 1, context.num_groups as usize)?;
+
+            kernel_2
+                .arg(&result_buffer)
+                .arg(&buckets_buffer)
+                .arg(&(window_lengths.len() as u32))
+                .run()?;
+
+            let mut results = vec![0u8; LIMB_COUNT as usize * 8 * context.num_groups as usize * 3];
+            program.read_into_buffer(&result_buffer, &mut results)?;
+
+            Ok(results)
+        });
+
+        let mut out = context.program.run(closures, ())?;
+
+        let base_size = std::mem::size_of::<<<G1Affine as AffineCurve>::BaseField as PrimeField>::BigInteger>();
+
+        let windows = unsafe {
+            Vec::from_raw_parts(
+                out.as_mut_ptr() as *mut G1Projective,
+                out.len() / base_size / 3,
+                out.capacity() / base_size / 3,
+            )
+        };
+        std::mem::forget(out);
+
+        let lowest = windows.first().unwrap();
+
+        // We're traversing windows from high to low.
+        let final_result = windows[1..]
+            .iter()
+            .rev()
+            .fold(G1Projective::zero(), |mut total, sum_i| {
+                total += sum_i;
+                for _ in 0..BIT_WIDTH {
+                    total.double_in_place();
+                }
+                total
+            })
+            + lowest;
+        Ok(final_result)
+    } else {
+        Err(GPUError::DeviceNotFound)
     }
 
-    let closures = program_closures!(|program, _arg| -> Result<Vec<u8>, GPUError> {
-        let window_lengths_buffer = program.create_buffer_from_slice(&window_lengths)?;
-        let base_buffer = program.create_buffer_from_slice(&mapped_bases)?;
-        let scalars_buffer = program.create_buffer_from_slice(&request.scalars)?;
-
-        let buckets_buffer = program.create_buffer_from_slice(&vec![
-            0u8;
-            context.num_groups as usize
-                * window_lengths.len() as usize
-                * 8
-                * LIMB_COUNT as usize
-                * 3
-        ])?;
-        let result_buffer =
-            program.create_buffer_from_slice(&vec![0u8; LIMB_COUNT as usize * 8 * context.num_groups as usize * 3])?;
-
-        // // The global work size follows CUDA's definition and is the number of
-        // // `LOCAL_WORK_SIZE` sized thread groups.
-        // const LOCAL_WORK_SIZE: usize = 256;
-        // let global_work_size =
-        //     (window_lengths.len() * context.num_groups as usize + LOCAL_WORK_SIZE - 1) / LOCAL_WORK_SIZE;
-
-        let kernel_1 = program.create_kernel(
-            &context.pixel_func_name,
-            window_lengths.len(),
-            context.num_groups as usize,
-        )?;
-
-        kernel_1
-            .arg(&buckets_buffer)
-            .arg(&base_buffer)
-            .arg(&scalars_buffer)
-            .arg(&window_lengths_buffer)
-            .arg(&(window_lengths.len() as u32))
-            .run()?;
-
-        let kernel_2 = program.create_kernel(&context.row_func_name, 1, context.num_groups as usize)?;
-
-        kernel_2
-            .arg(&result_buffer)
-            .arg(&buckets_buffer)
-            .arg(&(window_lengths.len() as u32))
-            .run()?;
-
-        let mut results = vec![0u8; LIMB_COUNT as usize * 8 * context.num_groups as usize * 3];
-        program.read_into_buffer(&result_buffer, &mut results)?;
-
-        Ok(results)
-    });
-
-    let mut out = context.program.run(closures, ())?;
-
-    let base_size = std::mem::size_of::<<<G1Affine as AffineCurve>::BaseField as PrimeField>::BigInteger>();
-
-    let windows = unsafe {
-        Vec::from_raw_parts(
-            out.as_mut_ptr() as *mut G1Projective,
-            out.len() / base_size / 3,
-            out.capacity() / base_size / 3,
-        )
-    };
-    std::mem::forget(out);
-
-    let lowest = windows.first().unwrap();
-
-    // We're traversing windows from high to low.
-    let final_result = windows[1..]
-        .iter()
-        .rev()
-        .fold(G1Projective::zero(), |mut total, sum_i| {
-            total += sum_i;
-            for _ in 0..BIT_WIDTH {
-                total.double_in_place();
-            }
-            total
-        })
-        + lowest;
-    Ok(final_result)
 }
 
 /// Initialize the cuda request handler.
@@ -319,19 +323,17 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
         Ok(program) => {
             let num_groups = (SCALAR_BITS + BIT_WIDTH - 1) / BIT_WIDTH;
 
-            let mut context = CudaContext {
+            let context = Arc::new(RwLock::new(CudaContext {
                 num_groups: num_groups as u32,
                 pixel_func_name: "msm6_pixel".to_string(),
                 row_func_name: "msm6_collapse_rows".to_string(),
                 program,
-            };
+            }));
 
             // Handle each cuda request received from the channel.
             while let Ok(request) = input.recv() {
-                let mut context = context.clone();
                 task::spawn( async move {
-                    let out = handle_cuda_request(&mut context, &request);
-
+                    let out = handle_cuda_request(&mut context.clone(), &request);
                     request.response.send(out).ok();
                 });
             }
