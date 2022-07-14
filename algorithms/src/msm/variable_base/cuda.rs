@@ -38,6 +38,7 @@ pub struct CudaRequest {
     response: crossbeam_channel::Sender<Result<G1Projective, GPUError>>,
 }
 
+#[derive(Clone)]
 struct CudaContext {
     num_groups: u32,
     pixel_func_name: String,
@@ -327,11 +328,12 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
 
             // Handle each cuda request received from the channel.
             while let Ok(request) = input.recv() {
-                task::spwan( async move {
+                let mut context = context.clone();
+                task::spawn( async move {
                     let out = handle_cuda_request(&mut context, &request);
 
                     request.response.send(out).ok();
-                })
+                });
             }
         }
         Err(err) => {
