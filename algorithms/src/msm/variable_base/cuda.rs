@@ -397,7 +397,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
     }
 
     let (sender, receiver) = crossbeam_channel::bounded(1);
-    if let Ok(dispatcher) = CUDA_DISPATCH.read() {
+    if let Ok(mut dispatcher) = CUDA_DISPATCH.read() {
         if let Some(dispatcher_sender) = dispatcher.get(dispatcher.len() - 1){
             drop(dispatcher);
             if let Ok(mut dispatcher) = CUDA_DISPATCH.write() {
