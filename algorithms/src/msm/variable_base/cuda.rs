@@ -399,17 +399,18 @@ pub(super) fn msm_cuda<G: AffineCurve>(
     let (sender, receiver) = crossbeam_channel::bounded(1);
     if let Ok(mut dispatcher) = CUDA_DISPATCH.read() {
         if let Some(dispatcher_sender) = dispatcher.get(dispatcher.len() - 1){
-            drop(dispatcher);
-            if let Ok(mut dispatcher) = CUDA_DISPATCH.write() {
-                dispatcher.remove(idx);
-                drop(dispatcher);
-            }
+
             dispatcher_sender.send(CudaRequest {
                 bases: unsafe { std::mem::transmute(bases.to_vec()) },
                 scalars: unsafe { std::mem::transmute(scalars.to_vec()) },
                 response: sender,
             })
                 .map_err(|_| GPUError::DeviceNotFound)?;
+            drop(dispatcher);
+            if let Ok(mut dispatcher) = CUDA_DISPATCH.write() {
+                dispatcher.remove(idx);
+                drop(dispatcher);
+            }
             match receiver.recv() {
                 Ok(x) => unsafe { std::mem::transmute_copy(&x) },
                 Err(_) => Err(GPUError::DeviceNotFound),
