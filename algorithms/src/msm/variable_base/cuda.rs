@@ -323,13 +323,10 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
                 row_func_name: "msm6_collapse_rows".to_string(),
                 program,
             };
-            let out = handle_cuda_request(&mut context, &request);
-            request.response.send(out).ok();
-            // Handle each cuda request received from the channel.
-            //     while let Ok(request) = input.recv() {
-            //         let out = handle_cuda_request(&mut context, &request);
-            //         request.response.send(out).ok();
-            //     }
+            while let Ok(request) = input.recv() {
+                let out = handle_cuda_request(&mut context, &request);
+                request.response.send(out).ok();
+            }
         }
         Err(err) => {
             eprintln!("Error loading cuda program: {:?}", err);
@@ -350,7 +347,10 @@ fn init_cuda_dispatch(index: usize) {
         let device = devices[index];
         let (sender, receiver) = crossbeam_channel::bounded(4096);
         std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
-        dispatchers.push(sender);
+        if dispatchers.len() <= devices.len() {
+            dispatchers.push(sender);
+        }
+
         // for device in devices {
         //     let (sender, receiver) = crossbeam_channel::bounded(4096);
         //     std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
@@ -376,7 +376,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
     // if let Ok(dispatchers) = CUDA_DISPATCH.read() {
     //     len = dispatchers.len();
     // }
-    //
+
     // if len == 0 {
     //     init_cuda_dispatch(index);
     // }
@@ -399,7 +399,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
 
     let (sender, receiver) = crossbeam_channel::bounded(1);
     if let Ok(dispatcher) = CUDA_DISPATCH.read() {
-        if let Some(dispatcher_sender) = dispatcher.get(index){
+        if let Some(dispatcher_sender) = dispatcher.get(dispatcher.len() - 1){
             dispatcher_sender.send(CudaRequest {
                 bases: unsafe { std::mem::transmute(bases.to_vec()) },
                 scalars: unsafe { std::mem::transmute(scalars.to_vec()) },
