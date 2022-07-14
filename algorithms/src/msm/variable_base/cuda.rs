@@ -25,6 +25,9 @@ use rust_gpu_tools::{cuda, program_closures, Device, GPUError, Program};
 
 use std::{any::TypeId, path::Path, process::Command};
 use std::sync::RwLock;
+use tokio::task;
+
+
 
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -45,7 +48,7 @@ struct CudaContext {
 const SCALAR_BITS: usize = 253;
 const BIT_WIDTH: usize = 1;
 const LIMB_COUNT: usize = 6;
-const WINDOW_SIZE: u32 = 128; // must match in cuda source
+const WINDOW_SIZE: u32 = 512; // must match in cuda source
 
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
@@ -324,9 +327,11 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
 
             // Handle each cuda request received from the channel.
             while let Ok(request) = input.recv() {
-                let out = handle_cuda_request(&mut context, &request);
+                task::spwan( async move {
+                    let out = handle_cuda_request(&mut context, &request);
 
-                request.response.send(out).ok();
+                    request.response.send(out).ok();
+                })
             }
         }
         Err(err) => {
