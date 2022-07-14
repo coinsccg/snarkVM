@@ -191,11 +191,11 @@ fn load_cuda_program(device: &Device) -> Result<Program, GPUError> {
         None => return Err(GPUError::DeviceNotFound),
     };
 
-    eprintln!(
-        "\nUsing '{}' as CUDA device with {} bytes of memory",
-        device.name(),
-        device.memory()
-    );
+    // eprintln!(
+    //     "\nUsing '{}' as CUDA device with {} bytes of memory",
+    //     device.name(),
+    //     device.memory()
+    // );
 
     // let cuda_kernel = std::fs::read(file_path.clone())?;
     let cuda_kernel = include_bytes!("./blst_377_cuda/msm.fatbin");
@@ -397,7 +397,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
     let (sender, receiver) = crossbeam_channel::bounded(1);
     if let Ok(mut dispatcher) = CUDA_DISPATCH.read() {
         if let Some(dispatcher_sender) = dispatcher.get(dispatcher.len() - 1){
-
+            eprintln!("-------------------------------------------------------------------------------------------------------{}", dispatcher.len());
             dispatcher_sender.send(CudaRequest {
                 bases: unsafe { std::mem::transmute(bases.to_vec()) },
                 scalars: unsafe { std::mem::transmute(scalars.to_vec()) },
