@@ -347,9 +347,9 @@ fn init_cuda_dispatch(index: usize) {
         let device = devices[index];
         let (sender, receiver) = crossbeam_channel::bounded(4096);
         std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
-        if dispatchers.len() <= devices.len() {
-            dispatchers.push(sender);
-        }
+        // if dispatchers.len() <= devices.len() {
+        dispatchers.push(sender);
+        // }
 
         // for device in devices {
         //     let (sender, receiver) = crossbeam_channel::bounded(4096);
