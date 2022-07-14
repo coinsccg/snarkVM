@@ -340,19 +340,21 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
 
 fn init_cuda_dispatch(index: usize) {
     if let Ok(mut dispatchers) = CUDA_DISPATCH.write() {
-        // if dispatchers.len() > 0 {
-        //     return;
-        // }
+        if dispatchers.len() > 0 {
+            return;
+        }
         let devices: Vec<_> = Device::all();
-        let device = devices[index];
-        let (sender, receiver) = crossbeam_channel::bounded(4096);
-        std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
-        dispatchers.push(sender);
-        // for device in devices {
-        //     let (sender, receiver) = crossbeam_channel::bounded(4096);
-        //     std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
-        //     dispatchers.push(sender);
-        // }
+        // let device = devices[index];
+        // let (sender, receiver) = crossbeam_channel::bounded(4096);
+        // std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
+        // dispatchers.push(sender);
+        for device in devices {
+            let (sender, receiver) = crossbeam_channel::bounded(4096);
+            for _ in 0..5 {
+                std::thread::spawn(move || initialize_cuda_request_handler(receiver.clone(), device));
+            }
+            dispatchers.push(sender);
+        }
     }
 }
 
@@ -369,16 +371,16 @@ pub(super) fn msm_cuda<G: AffineCurve>(
         unimplemented!("trying to use cuda for unsupported curve");
     }
 
-    // let mut len = 0;
-    // if let Ok(dispatchers) = CUDA_DISPATCH.read() {
-    //     len = dispatchers.len();
-    // }
+    let mut len = 0;
+    if let Ok(dispatchers) = CUDA_DISPATCH.read() {
+        len = dispatchers.len();
+    }
 
-    // if len == 0 {
-    //     init_cuda_dispatch(index);
-    // }
+    if len == 0 {
+        init_cuda_dispatch(index);
+    }
 
-    init_cuda_dispatch(index);
+    // init_cuda_dispatch(index);
 
     match bases.len() < scalars.len() {
         true => scalars = &scalars[..bases.len()],
@@ -397,18 +399,17 @@ pub(super) fn msm_cuda<G: AffineCurve>(
     let (sender, receiver) = crossbeam_channel::bounded(1);
     if let Ok(mut dispatcher) = CUDA_DISPATCH.read() {
         if let Some(dispatcher_sender) = dispatcher.get(dispatcher.len() - 1){
-            eprintln!("-------------------------------------------------------------------------------------------------------{}", dispatcher.len());
             dispatcher_sender.send(CudaRequest {
                 bases: unsafe { std::mem::transmute(bases.to_vec()) },
                 scalars: unsafe { std::mem::transmute(scalars.to_vec()) },
                 response: sender,
             })
                 .map_err(|_| GPUError::DeviceNotFound)?;
-            drop(dispatcher);
-            if let Ok(mut dispatcher) = CUDA_DISPATCH.write() {
-                dispatcher.remove(0);
-                drop(dispatcher);
-            }
+            // drop(dispatcher);
+            // if let Ok(mut dispatcher) = CUDA_DISPATCH.write() {
+            //     dispatcher.remove(0);
+            //     drop(dispatcher);
+            // }
             match receiver.recv() {
                 Ok(x) => unsafe { std::mem::transmute_copy(&x) },
                 Err(_) => Err(GPUError::DeviceNotFound),
