@@ -338,7 +338,7 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
     }
 }
 
-fn init_cuda_dispatch(index: usize) {
+fn init_cuda_dispatch(index: usize) -> usize {
     if let Ok(mut dispatchers) = CUDA_DISPATCH.write() {
         // if dispatchers.len() > 0 {
         //     return;
@@ -348,13 +348,14 @@ fn init_cuda_dispatch(index: usize) {
         let (sender, receiver) = crossbeam_channel::bounded(4096);
         std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
         dispatchers.push(sender);
-
+        dispatchers.len() - 1
         // for device in devices {
         //     let (sender, receiver) = crossbeam_channel::bounded(4096);
         //     std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
         //     dispatchers.push(sender);
         // }
     }
+    0
 }
 
 lazy_static::lazy_static! {
@@ -379,7 +380,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
     //     init_cuda_dispatch(index);
     // }
 
-    init_cuda_dispatch(index);
+    let idx = init_cuda_dispatch(index);
 
     match bases.len() < scalars.len() {
         true => scalars = &scalars[..bases.len()],
@@ -397,8 +398,12 @@ pub(super) fn msm_cuda<G: AffineCurve>(
 
     let (sender, receiver) = crossbeam_channel::bounded(1);
     if let Ok(dispatcher) = CUDA_DISPATCH.read() {
-        let idx = dispatcher.len() - 1;
         if let Some(dispatcher_sender) = dispatcher.get(dispatcher.len() - 1){
+            drop(dispatcher);
+            if let Ok(mut dispatcher) = CUDA_DISPATCH.write() {
+                dispatcher.remove(idx);
+                drop(dispatcher);
+            }
             dispatcher_sender.send(CudaRequest {
                 bases: unsafe { std::mem::transmute(bases.to_vec()) },
                 scalars: unsafe { std::mem::transmute(scalars.to_vec()) },
@@ -406,13 +411,7 @@ pub(super) fn msm_cuda<G: AffineCurve>(
             })
                 .map_err(|_| GPUError::DeviceNotFound)?;
             match receiver.recv() {
-                Ok(x) => {
-                    drop(dispatcher);
-                    if let Ok(mut dispatcher) = CUDA_DISPATCH.write() {
-                        dispatcher.remove(idx);
-                    }
-                    unsafe { std::mem::transmute_copy(&x) }
-                },
+                Ok(x) => unsafe { std::mem::transmute_copy(&x) },
                 Err(_) => Err(GPUError::DeviceNotFound),
             }
         } else {
