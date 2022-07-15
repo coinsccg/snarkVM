@@ -51,7 +51,7 @@ struct CudaContext {
     row_func_name: String,
 }
 
-const SCALAR_BITS: usize = 256;
+const SCALAR_BITS: usize = 512;
 const BIT_WIDTH: usize = 1;
 const LIMB_COUNT: usize = 6;
 const WINDOW_SIZE: u32 = 512; // must match in cuda source
@@ -416,7 +416,7 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest,  index:
 
     let kernel_1 = program.create_kernel(
         &context.pixel_func_name,
-        window_lengths.len(),
+        window_lengths.len()/4,
         context.num_groups as usize,
     )?;
 
@@ -428,7 +428,7 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest,  index:
         .arg(&(window_lengths.len() as u32))
         .run()?;
 
-    let kernel_2 = program.create_kernel(&context.row_func_name, 1, context.num_groups as usize)?;
+    let kernel_2 = program.create_kernel(&context.row_func_name, 4, context.num_groups as usize)?;
 
     kernel_2
         .arg(&result_buffer)
