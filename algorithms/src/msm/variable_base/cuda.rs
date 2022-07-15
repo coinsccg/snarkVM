@@ -24,9 +24,8 @@ use snarkvm_utilities::BitIteratorBE;
 use rust_gpu_tools::{cuda, program_closures, Device, GPUError, Program};
 
 use std::{any::TypeId, path::Path, process::Command};
-use std::sync::{RwLock, Arc};
-use std::sync::atomic::AtomicU32;
-
+use std::sync::{RwLock, Arc, atomic::{Ordering, AtomicU32}};
+use std::collections::VecDeque;
 
 
 #[cfg(feature = "parallel")]
@@ -524,12 +523,47 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
         pixel_func_name: "msm6_pixel".to_string(),
         row_func_name: "msm6_collapse_rows".to_string(),
     };
-    while let Ok(request) = input.recv() {
+    let mut tmp = Arc::new(VecDeque::new());
+
+
+    let mut tmp1 = tmp.clone();
+    let mut context1 = context.clone();
+    let cuda_thread: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
+    std::thread::spawn(move || {
+        let mut context = context1.clone();
+        let cuda_thread = cuda_thread.clone();
+        loop {
+            let mut context = context.clone();
+            if tmp1.len() > 0 {
+                let request = tmp1.pop_front().unwrap();
+                let cuda_thread1 = cuda_thread.clone();
+                std::thread::spawn(move || {
+                    let out = handle_cuda_request(&mut context, &request, index);
+                    request.response.send(out).ok();
+                    cuda_thread1.fetch_sub(1,  Ordering::SeqCst);
+                });
+                cuda_thread.fetch_add(1,  Ordering::SeqCst);
+            }
+        }
+    });
+
+
+    while let Ok(mut request) = input.recv() {
+        if cuda_thread.load(Ordering::SeqCst) >= 140 {
+            tmp.push_back(request);
+            continue;
+        }
+        if tmp.len() > 0 {
+            request = tmp.pop_front().unwrap();
+        }
         let mut context = context.clone();
+        let cuda_thread1 = cuda_thread.clone();
         std::thread::spawn(move || {
             let out = handle_cuda_request(&mut context, &request, index);
             request.response.send(out).ok();
+            cuda_thread1.fetch_sub(1,  Ordering::SeqCst);
         });
+        cuda_thread.fetch_add(1,  Ordering::SeqCst);
     }
 }
 
@@ -552,7 +586,6 @@ fn init_cuda_dispatch(index: usize) {
 
 lazy_static::lazy_static! {
     static ref CUDA_DISPATCH: RwLock<Vec<crossbeam_channel::Sender<CudaRequest>>> = RwLock::new(Vec::new());
-    // static ref CUDA_THREAD: Arc<AtomicU32>
 }
 
 pub(super) fn msm_cuda<G: AffineCurve>(
