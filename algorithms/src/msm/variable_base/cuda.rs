@@ -529,8 +529,9 @@ fn init_cuda_program() {
 
 lazy_static::lazy_static! {
     static ref CUDA_DISPATCH: RwLock<Vec<crossbeam_channel::Sender<CudaRequest>>> = RwLock::new(Vec::new());
-    static ref PROGRAM_DISPATCH: RwLock<Vec<Program>> = RwLock::new(Vec::new());
 }
+
+static PROGRAM_DISPATCH: RwLock<Vec<Program>> = RwLock::new(Vec::new());
 
 pub(super) fn msm_cuda<G: AffineCurve>(
     mut bases: &[G],
