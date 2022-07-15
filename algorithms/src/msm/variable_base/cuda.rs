@@ -51,7 +51,7 @@ struct CudaContext {
     row_func_name: String,
 }
 
-const SCALAR_BITS: usize = 253;
+const SCALAR_BITS: usize = 512;
 const BIT_WIDTH: usize = 1;
 const LIMB_COUNT: usize = 6;
 const WINDOW_SIZE: u32 = 512; // must match in cuda source
@@ -318,6 +318,61 @@ fn load_cuda_program(device: &Device) -> Result<Program, GPUError> {
 //     Ok(final_result)
 // }
 
+
+//
+// /// Initialize the cuda request handler.
+// fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaRequest>, device: &Device) {
+//     match load_cuda_program(device) {
+//         Ok(program) => {
+//             let num_groups = (SCALAR_BITS + BIT_WIDTH - 1) / BIT_WIDTH;
+//
+//             let mut context = CudaContext {
+//                 num_groups: num_groups as u32,
+//                 pixel_func_name: "msm6_pixel".to_string(),
+//                 row_func_name: "msm6_collapse_rows".to_string(),
+//                 program,
+//             };
+//             while let Ok(request) = input.recv() {
+//                 std::thread::spawn(move || {
+//                     let out = handle_cuda_request(&mut context, &request);
+//                     request.response.send(out).ok();
+//                 });
+//             }
+//         }
+//         Err(err) => {
+//             eprintln!("Error loading cuda program: {:?}", err);
+//             // If the cuda program fails to load, notify the cuda request dispatcher.
+//             while let Ok(request) = input.recv() {
+//                 request.response.send(Err(GPUError::DeviceNotFound)).ok();
+//             }
+//         }
+//     }
+// }
+
+// fn init_cuda_dispatch(index: usize) {
+//     if let Ok(mut dispatchers) = CUDA_DISPATCH.write() {
+//         if dispatchers.len() > 0 {
+//             return;
+//         }
+//
+//         let devices: Vec<_> = Device::all();
+//         for device in devices {
+//             let (sender, receiver) = crossbeam_channel::bounded(4096);
+//             std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
+//             dispatchers.push(sender);
+//         }
+//
+//         // let devices: Vec<_> = Device::all();
+//         // let device = devices[index];
+//         // let (sender, receiver) = crossbeam_channel::bounded(4096);
+//         // std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
+//         // dispatchers.push(sender);
+//
+//     }
+// }
+
+
+
 fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest,  index: usize) -> Result<G1Projective, GPUError> {
     let devices: Vec<_> = Device::all();
     let device=  &load_cuda_program(devices[index]).unwrap();
@@ -417,57 +472,6 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest,  index:
     Ok(final_result)
 
 }
-//
-// /// Initialize the cuda request handler.
-// fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaRequest>, device: &Device) {
-//     match load_cuda_program(device) {
-//         Ok(program) => {
-//             let num_groups = (SCALAR_BITS + BIT_WIDTH - 1) / BIT_WIDTH;
-//
-//             let mut context = CudaContext {
-//                 num_groups: num_groups as u32,
-//                 pixel_func_name: "msm6_pixel".to_string(),
-//                 row_func_name: "msm6_collapse_rows".to_string(),
-//                 program,
-//             };
-//             while let Ok(request) = input.recv() {
-//                 std::thread::spawn(move || {
-//                     let out = handle_cuda_request(&mut context, &request);
-//                     request.response.send(out).ok();
-//                 });
-//             }
-//         }
-//         Err(err) => {
-//             eprintln!("Error loading cuda program: {:?}", err);
-//             // If the cuda program fails to load, notify the cuda request dispatcher.
-//             while let Ok(request) = input.recv() {
-//                 request.response.send(Err(GPUError::DeviceNotFound)).ok();
-//             }
-//         }
-//     }
-// }
-
-// fn init_cuda_dispatch(index: usize) {
-//     if let Ok(mut dispatchers) = CUDA_DISPATCH.write() {
-//         if dispatchers.len() > 0 {
-//             return;
-//         }
-//
-//         let devices: Vec<_> = Device::all();
-//         for device in devices {
-//             let (sender, receiver) = crossbeam_channel::bounded(4096);
-//             std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
-//             dispatchers.push(sender);
-//         }
-//
-//         // let devices: Vec<_> = Device::all();
-//         // let device = devices[index];
-//         // let (sender, receiver) = crossbeam_channel::bounded(4096);
-//         // std::thread::spawn(move || initialize_cuda_request_handler(receiver, device));
-//         // dispatchers.push(sender);
-//
-//     }
-// }
 
 
 /// Initialize the cuda request handler.
@@ -482,7 +486,7 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
     while let Ok(request) = input.recv() {
         let context = context.clone();
         std::thread::spawn(move || {
-            let out = handle_cuda_request(&mut context.clone(), &request, index);
+            let out = handle_cuda_request(&mut contex, &request, index);
             request.response.send(out).ok();
         });
     }
