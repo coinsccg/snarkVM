@@ -44,7 +44,7 @@ pub struct CudaRequest {
 //     program: Program,
 // }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 struct CudaContext {
     num_groups: u32,
     pixel_func_name: String,
