@@ -34,13 +34,20 @@ fn variable_base(c: &mut Criterion) {
     let mut rng = XorShiftRng::seed_from_u64(234872845u64);
 
     let v = (0..SAMPLES).map(|_| Fr::rand(&mut rng).to_repr()).collect::<Vec<_>>();
-    let g = (0..SAMPLES)
+    let mut g = (0..SAMPLES)
         .map(|_| G1Projective::rand(&mut rng).into_affine())
         .collect::<Vec<_>>();
 
     c.bench_function("MSM Variable Base", move |b| {
         b.iter(|| {
-            VariableBaseMSM::multi_scalar_mul(g.as_slice(), v.as_slice(), 0);
+            for _ in 0..10 {
+                let mut g1 = Vec::new();
+                let v1 = v.clone();
+                g1.clone_into(&mut g);
+                std::thread::spawn(move || {
+                    VariableBaseMSM::multi_scalar_mul(g1.as_slice(), v1.as_slice(), 0);
+                });
+            }
         })
     });
 }
