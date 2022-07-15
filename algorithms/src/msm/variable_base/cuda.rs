@@ -485,7 +485,7 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
     };
     while let Ok(request) = input.recv() {
         std::thread::spawn(move || {
-            let out = handle_cuda_request(&mut context, &request, index);
+            let out = handle_cuda_request(&mut context.clone(), &request, index);
             request.response.send(out).ok();
         });
     }
