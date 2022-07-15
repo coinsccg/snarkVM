@@ -503,26 +503,6 @@ fn init_cuda_dispatch(index: usize) {
     }
 }
 
-fn init_cuda_program() {
-    if let Ok(mut program_dispatch) = PROGRAM_DISPATCH.write() {
-        if program_dispatch.len() > 0 {
-            return;
-        }
-        let devices: Vec<_> = Device::all();
-        for device in devices {
-            match load_cuda_program(device) {
-                Ok(program) => {
-                    program_dispatch.push(program)
-                }
-                Err(err) => {
-                    eprintln!("Error loading cuda program: {:?}", err);
-                }
-            }
-        }
-    }
-}
-
-
 lazy_static::lazy_static! {
     static ref CUDA_DISPATCH: RwLock<Vec<crossbeam_channel::Sender<CudaRequest>>> = RwLock::new(Vec::new());
 }
