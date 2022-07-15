@@ -51,7 +51,7 @@ struct CudaContext {
     row_func_name: String,
 }
 
-const SCALAR_BITS: usize = 512;
+const SCALAR_BITS: usize = 256;
 const BIT_WIDTH: usize = 1;
 const LIMB_COUNT: usize = 6;
 const WINDOW_SIZE: u32 = 512; // must match in cuda source
