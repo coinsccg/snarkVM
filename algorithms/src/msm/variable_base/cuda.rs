@@ -327,7 +327,7 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
                 std::thread::spawn(move || {
                     let out = handle_cuda_request(&mut context, &request);
                     request.response.send(out).ok();
-                })
+                });
             }
         }
         Err(err) => {
