@@ -340,9 +340,9 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
 
 fn init_cuda_dispatch(index: usize) {
     if let Ok(mut dispatchers) = CUDA_DISPATCH.write() {
-        if dispatchers.len() > 0 {
-            return;
-        }
+        // if dispatchers.len() > 0 {
+        //     return;
+        // }
         let devices: Vec<_> = Device::all();
         let device = devices[index];
         let (sender, receiver) = crossbeam_channel::bounded(4096);
