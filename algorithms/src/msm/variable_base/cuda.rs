@@ -484,9 +484,9 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
         row_func_name: "msm6_collapse_rows".to_string(),
     };
     while let Ok(request) = input.recv() {
-        let context = context.clone();
+        let mut context = context.clone();
         std::thread::spawn(move || {
-            let out = handle_cuda_request(&mut contex, &request, index);
+            let out = handle_cuda_request(&mut context, &request, index);
             request.response.send(out).ok();
         });
     }
