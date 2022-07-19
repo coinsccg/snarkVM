@@ -106,13 +106,11 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         loop {
             crossbeam_channel::select! {
                 recv(receiver) -> res => {
-                    eprintln!("-----------------------------------------------------------------------------------------------------");
                     return Err(PoSWError::Message(
                             "A thread has succeeded. Stop mining".to_string(),
                         ));
                 },
                 default => {
-                    eprintln!("-----------------------------------------------------------------------------------------------------1");
                     // Every 100 iterations, check that the miner is still within the allowed mining duration.
                     if iteration % 100 == 0
                         && Utc::now().timestamp() >= block_template.block_timestamp() + MAXIMUM_MINING_DURATION
