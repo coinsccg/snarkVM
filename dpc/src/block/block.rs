@@ -97,7 +97,8 @@ impl<N: Network> Block<N> {
         );
 
         // Construct the genesis block.
-        let block = Self::mine(&template, &AtomicBool::new(false), rng, 100)?;
+        let (sender, receiver) = crossbeam_channel::bounded::<usize>(1);
+        let block = Self::mine(&template, &AtomicBool::new(false), rng, 100, receiver)?;
 
         // Ensure the block is valid genesis block.
         match block.is_genesis() {
