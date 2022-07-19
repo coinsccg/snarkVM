@@ -106,6 +106,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         loop {
             crossbeam_channel::select! {
                 recv(receiver) -> res => {
+                    eprintln!("-----------------------------------------------------------------------------------------------------");
                     return Err(PoSWError::Message(
                             "A thread has succeeded. Stop mining".to_string(),
                         ));
