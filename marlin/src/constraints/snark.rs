@@ -98,6 +98,7 @@ where
         rng: &mut R,
         index: usize
     ) -> Result<Self::Proof, SNARKError> {
+        eprintln!("----------------------------------------------------------1111");
         match MarlinCore::<TargetField, BaseField, PC, FS, MM>::prove_with_terminator(
             parameters, circuit, terminator, rng, index
         ) {

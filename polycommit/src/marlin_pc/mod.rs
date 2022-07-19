@@ -216,7 +216,6 @@ impl<E: PairingEngine> PolynomialCommitment<E::Fr, E::Fq> for MarlinKZG10<E> {
         let mut randomness = Vec::new();
 
         for p in polynomials {
-            eprintln!("----------------------------------------------------------");
             let label = p.label();
             let degree_bound = p.degree_bound();
             let hiding_bound = p.hiding_bound();

@@ -270,7 +270,6 @@ impl<
     ) -> Result<Proof<TargetField, BaseField, PC>, MarlinError> {
         let prover_time = start_timer!(|| "Marlin::Prover");
         // TODO: Add check that c is in the correct mode.
-
         if terminator.load(Ordering::Relaxed) {
             return Err(MarlinError::Terminated);
         }
