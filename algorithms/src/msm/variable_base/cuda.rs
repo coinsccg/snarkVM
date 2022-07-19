@@ -370,8 +370,8 @@ struct CudaAffine {
 // }
 
 
-fn load_cuda_program(device: &Device) -> Result<Program, GPUError> {
-    // let devices: Vec<_> = Device::all();
+fn load_cuda_program(index: usize) -> Result<Program, GPUError> {
+    let devices: Vec<_> = Device::all();
     // let device = match devices.first() {
     //     Some(device) => device,
     //     None => return Err(GPUError::DeviceNotFound),
@@ -385,8 +385,7 @@ fn load_cuda_program(device: &Device) -> Result<Program, GPUError> {
     // if !file_path.exists() {
     //     generate_cuda_binary(&file_path, false)?;
     // }
-
-    let cuda_device = match device.cuda_device() {
+    let cuda_device = match devices[index].cuda_device() {
         Some(device) => device,
         None => return Err(GPUError::DeviceNotFound),
     };
@@ -398,6 +397,7 @@ fn load_cuda_program(device: &Device) -> Result<Program, GPUError> {
     // );
 
     // let cuda_kernel = std::fs::read(file_path.clone())?;
+
     let cuda_kernel = include_bytes!("./blst_377_cuda/msm.fatbin");
 
     // Load the cuda program from the kernel bytes.
@@ -414,8 +414,7 @@ fn load_cuda_program(device: &Device) -> Result<Program, GPUError> {
 }
 
 fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest,  index: usize) -> Result<G1Projective, GPUError> {
-    let devices: Vec<_> = Device::all();
-    let device=  &load_cuda_program(devices[index]).unwrap();
+    let device=  &load_cuda_program(index).unwrap();
     let mapped_bases: Vec<_> = crate::cfg_iter!(request.bases)
         .map(|affine| CudaAffine {
             x: affine.x,
@@ -515,7 +514,7 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest,  index:
 
 
 /// Initialize the cuda request handler.
-fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaRequest>, index: usize) {
+fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaRequest>, index: usize, device: &Device) {
     let num_groups = (SCALAR_BITS + BIT_WIDTH - 1) / BIT_WIDTH;
 
     let mut context = CudaContext {
@@ -523,32 +522,32 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
         pixel_func_name: "msm6_pixel".to_string(),
         row_func_name: "msm6_collapse_rows".to_string(),
     };
-    let mut tmp = Arc::new(RwLock::new(VecDeque::new()));
 
 
-    let mut tmp1 = tmp.clone();
-    let mut context1 = context.clone();
+    let mut tasks = Arc::new(RwLock::new(VecDeque::new()));
+    let mut tasks_tmp = tasks.clone();
+
+    let mut context_tmp = context.clone();
+
     let cuda_thread: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
-    let cuda_thread1 = cuda_thread.clone();
-    std::thread::spawn(move || {
-        let mut context = context1.clone();
-        let cuda_thread = cuda_thread1.clone();
-        loop {
-            let mut context = context.clone();
-            if let Ok(mut tmp1) = tmp1.write() {
+    let cuda_thread_tmp = cuda_thread.clone();
 
-                if tmp1.len() > 0 {
-                    let cuda_thread1 = cuda_thread.clone();
-                    if cuda_thread1.load(Ordering::SeqCst) < 80 {
-                        let request = tmp1.pop_front().unwrap();
-                        drop(tmp1);
+    std::thread::spawn(move || {
+        loop {
+            let mut context_tmp1 = context_tmp.clone();
+            if let Ok(mut tasks) = tasks_tmp.write() {
+
+                if tasks.len() > 0 {
+                    let cuda_thread_tmp1 = cuda_thread_tmp.clone();
+                    if cuda_thread_tmp.load(Ordering::SeqCst) < 80 {
+                        let request = tasks.pop_front().unwrap();
 
                         std::thread::spawn(move || {
-                            let out = handle_cuda_request(&mut context, &request, index);
+                            let out = handle_cuda_request(&mut context_tmp1, &request, index);
                             request.response.send(out).ok();
-                            cuda_thread1.fetch_sub(1,  Ordering::SeqCst);
+                            cuda_thread_tmp1.fetch_sub(1,  Ordering::SeqCst);
                         });
-                        cuda_thread.fetch_add(1,  Ordering::SeqCst);
+                        cuda_thread_tmp.fetch_add(1,  Ordering::SeqCst);
                     }
                 }
             }
@@ -557,18 +556,17 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
 
 
     while let Ok(mut request) = input.recv() {
-        if let Ok(mut tmp) = tmp.write() {
+        if let Ok(mut task_tmp) = tasks.write() {
             if cuda_thread.load(Ordering::SeqCst) >= 80 {
-                tmp.push_back(request);
+                task_tmp.push_back(request);
                 continue;
             }
-            drop(tmp);
             let mut context = context.clone();
-            let cuda_thread1 = cuda_thread.clone();
+            let cuda_thread_tmp = cuda_thread.clone();
             std::thread::spawn(move || {
                 let out = handle_cuda_request(&mut context, &request, index);
                 request.response.send(out).ok();
-                cuda_thread1.fetch_sub(1,  Ordering::SeqCst);
+                cuda_thread_tmp.fetch_sub(1,  Ordering::SeqCst);
             });
             cuda_thread.fetch_add(1,  Ordering::SeqCst);
         }
@@ -581,12 +579,12 @@ fn init_cuda_dispatch(index: usize) {
         if dispatchers.len() > 0 {
             return;
         }
-
         let devices: Vec<_> = Device::all();
-        for _ in devices {
+        for device in devices {
             let (sender, receiver) = crossbeam_channel::bounded(4096);
-            std::thread::spawn(move || initialize_cuda_request_handler(receiver, index));
+            std::thread::spawn(move || initialize_cuda_request_handler(receiver, index, device));
             dispatchers.push(sender);
+
         }
 
     }
@@ -639,11 +637,6 @@ pub(super) fn msm_cuda<G: AffineCurve>(
                 response: sender,
             })
                 .map_err(|_| GPUError::DeviceNotFound)?;
-            // drop(dispatcher);
-            // if let Ok(mut dispatcher) = CUDA_DISPATCH.write() {
-            //     dispatcher.remove(0);
-            //     drop(dispatcher);
-            // }
             match receiver.recv() {
                 Ok(x) => unsafe { std::mem::transmute_copy(&x) },
                 Err(_) => Err(GPUError::DeviceNotFound),
