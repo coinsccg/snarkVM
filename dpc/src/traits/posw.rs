@@ -44,7 +44,8 @@ pub trait PoSWScheme<N: Network>: Clone + Send + Sync {
         block_template: &BlockTemplate<N>,
         terminator: &AtomicBool,
         rng: &mut R,
-        index: usize
+        index: usize,
+        receiver: crossbeam_channel::Receiver<usize>
     ) -> Result<BlockHeader<N>, PoSWError>;
 
     ///

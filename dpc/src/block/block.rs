@@ -55,14 +55,14 @@ pub struct Block<N: Network> {
 
 impl<N: Network> Block<N> {
     /// Initializes a new block.
-    pub fn mine<R: Rng + CryptoRng>(template: &BlockTemplate<N>, terminator: &AtomicBool, rng: &mut R, index: usize) -> Result<Self> {
+    pub fn mine<R: Rng + CryptoRng>(template: &BlockTemplate<N>, terminator: &AtomicBool, rng: &mut R, index: usize, receiver: crossbeam_channel::Receiver<usize>) -> Result<Self> {
         assert!(
             !(*(template.transactions())).is_empty(),
             "Cannot create block with no transactions"
         );
 
         // Compute the block header.
-        let header = BlockHeader::mine(template, terminator, rng, index)?;
+        let header = BlockHeader::mine(template, terminator, rng, index, receiver)?;
 
         // Construct the block.
         let previous_block_hash = template.previous_block_hash();

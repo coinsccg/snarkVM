@@ -129,10 +129,11 @@ impl<N: Network> BlockHeader<N> {
         block_template: &BlockTemplate<N>,
         terminator: &AtomicBool,
         rng: &mut R,
-        index: usize
+        index: usize,
+        receiver: crossbeam_channel::Receiver<usize>
     ) -> Result<Self> {
         // Mine the block.
-        let block_header = N::posw().mine(block_template, terminator, rng, index)?;
+        let block_header = N::posw().mine(block_template, terminator, rng, index, receiver)?;
 
         // Ensure the block header is valid.
         match block_header.is_valid() {

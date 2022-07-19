@@ -94,7 +94,8 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         block_template: &BlockTemplate<N>,
         terminator: &AtomicBool,
         rng: &mut R,
-        index: usize
+        index: usize,
+        receiver: crossbeam_channel::Receiver<usize>
     ) -> Result<BlockHeader<N>, PoSWError> {
         const MAXIMUM_MINING_DURATION: i64 = 600; // 600 seconds = 10 minutes.
 
@@ -103,37 +104,46 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
 
         let mut iteration = 1;
         loop {
-            // Every 100 iterations, check that the miner is still within the allowed mining duration.
-            if iteration % 100 == 0
-                && Utc::now().timestamp() >= block_template.block_timestamp() + MAXIMUM_MINING_DURATION
-            {
-                return Err(PoSWError::Message(
-                    "Failed mine block in the allowed mining duration".to_string(),
-                ));
+            crossbeam_channel::select! {
+                recv(receiver) -> res => {
+                    return Err(PoSWError::Message(
+                            "A thread has succeeded. Stop mining".to_string(),
+                        ));
+                },
+                default => {
+                    // Every 100 iterations, check that the miner is still within the allowed mining duration.
+                    if iteration % 100 == 0
+                        && Utc::now().timestamp() >= block_template.block_timestamp() + MAXIMUM_MINING_DURATION
+                    {
+                        return Err(PoSWError::Message(
+                            "Failed mine block in the allowed mining duration".to_string(),
+                        ));
+                    }
+
+                    // Run one iteration of PoSW.
+                    let proof = self.prove_once_unchecked(&mut circuit, block_template, terminator, rng, index)?;
+
+                    // Check if the updated block header is valid.
+                    if self.verify(
+                        block_template.block_height(),
+                        block_template.difficulty_target(),
+                        &circuit.to_public_inputs(),
+                        &proof,
+                    ) {
+                        // Construct a block header.
+                        return Ok(BlockHeader::from(
+                            block_template.previous_ledger_root(),
+                            block_template.transactions().transactions_root(),
+                            BlockHeaderMetadata::new(block_template),
+                            circuit.nonce(),
+                            proof,
+                        )?);
+                    }
+
+                    // Increment the iteration by one.
+                    iteration += 1;
+                }
             }
-
-            // Run one iteration of PoSW.
-            let proof = self.prove_once_unchecked(&mut circuit, block_template, terminator, rng, index)?;
-
-            // Check if the updated block header is valid.
-            if self.verify(
-                block_template.block_height(),
-                block_template.difficulty_target(),
-                &circuit.to_public_inputs(),
-                &proof,
-            ) {
-                // Construct a block header.
-                return Ok(BlockHeader::from(
-                    block_template.previous_ledger_root(),
-                    block_template.transactions().transactions_root(),
-                    BlockHeaderMetadata::new(block_template),
-                    circuit.nonce(),
-                    proof,
-                )?);
-            }
-
-            // Increment the iteration by one.
-            iteration += 1;
         }
     }
 

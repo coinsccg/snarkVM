@@ -104,6 +104,9 @@ version = "0.8"
 [dependencies.bincode]
 version = "1.3"
 
+[dependencies.crossbeam-channel]
+version = "0.5"
+
 [dependencies.blake2]
 version = "0.9"
 default-features = false

@@ -2017,6 +2017,7 @@ dependencies = [
  "blake2",
  "chrono",
  "criterion",
+ "crossbeam-channel",
  "derivative",
  "hex",
  "itertools",
