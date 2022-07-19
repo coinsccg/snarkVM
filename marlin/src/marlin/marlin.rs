@@ -294,21 +294,21 @@ impl<
                 .unwrap(),
             );
         }
-
+        eprintln!("----------------------------------------------------------------------------111");
         // --------------------------------------------------------------------
         // First round
 
         if terminator.load(Ordering::Relaxed) {
             return Err(MarlinError::Terminated);
         }
-
+        eprintln!("----------------------------------------------------------------------------222");
         let (prover_first_message, prover_first_oracles, prover_state) =
             AHPForR1CS::<_, MM>::prover_first_round(prover_init_state, zk_rng)?;
 
         if terminator.load(Ordering::Relaxed) {
             return Err(MarlinError::Terminated);
         }
-
+        eprintln!("----------------------------------------------------------------------------333");
         let first_round_comm_time = start_timer!(|| "Committing to first round polys");
         let (first_commitments, first_commitment_randomnesses) = PC::commit(
             &circuit_proving_key.committer_key,

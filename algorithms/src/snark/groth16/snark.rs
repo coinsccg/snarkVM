@@ -71,7 +71,6 @@ impl<E: PairingEngine, V: ToConstraintField<E::Fr> + Clone> SNARK for Groth16<E,
         rng: &mut R,
         index: usize
     ) -> Result<Self::Proof, SNARKError> {
-        eprintln!("----------------------------------------------------------2222");
         let proof_time = start_timer!(|| "{Groth 2016}::Prove");
         let result = create_random_proof::<E, C, _>(input_and_witness, proving_key, rng, index)?;
         end_timer!(proof_time);

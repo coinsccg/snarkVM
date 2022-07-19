@@ -248,7 +248,7 @@ impl<E: PairingEngine> PolynomialCommitment<E::Fr, E::Fq> for SonicKZG10<E> {
         let mut randomness: Vec<Self::Randomness> = Vec::new();
 
         let mut pool = snarkvm_utilities::ExecutionPool::<Result<_, _>>::new();
-
+        eprintln!("----------------------------------------------------------------------------4444");
         let enforced_degree_bounds: Option<&[usize]> = ck.enforced_degree_bounds.as_deref();
         for labeled_polynomial in polynomials {
             if terminator.load(Ordering::Relaxed) {
