@@ -95,6 +95,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         terminator: &AtomicBool,
         rng: &mut R,
         index: usize,
+        sender:crossbeam_channel::Sender<usize>,
         receiver: crossbeam_channel::Receiver<usize>
     ) -> Result<BlockHeader<N>, PoSWError> {
         const MAXIMUM_MINING_DURATION: i64 = 600; // 600 seconds = 10 minutes.
@@ -131,6 +132,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                         &proof,
                     ) {
                         // Construct a block header.
+                        sender.send(1);
                         return Ok(BlockHeader::from(
                             block_template.previous_ledger_root(),
                             block_template.transactions().transactions_root(),

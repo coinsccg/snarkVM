@@ -514,7 +514,7 @@ fn handle_cuda_request(context: &mut CudaContext, request: &CudaRequest,  index:
 
 
 /// Initialize the cuda request handler.
-fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaRequest>, index: usize, device: &Device) {
+fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaRequest>, index: usize) {
     let num_groups = (SCALAR_BITS + BIT_WIDTH - 1) / BIT_WIDTH;
 
     let mut context = CudaContext {
@@ -541,7 +541,7 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
                     let cuda_thread_tmp1 = cuda_thread_tmp.clone();
                     if cuda_thread_tmp.load(Ordering::SeqCst) < 80 {
                         let request = tasks.pop_front().unwrap();
-
+                        drop(tasks);
                         std::thread::spawn(move || {
                             let out = handle_cuda_request(&mut context_tmp1, &request, index);
                             request.response.send(out).ok();
@@ -561,6 +561,7 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
                 task_tmp.push_back(request);
                 continue;
             }
+            drop(task_tmp);
             let mut context = context.clone();
             let cuda_thread_tmp = cuda_thread.clone();
             std::thread::spawn(move || {
@@ -580,9 +581,9 @@ fn init_cuda_dispatch(index: usize) {
             return;
         }
         let devices: Vec<_> = Device::all();
-        for device in devices {
+        for _ in devices {
             let (sender, receiver) = crossbeam_channel::bounded(4096);
-            std::thread::spawn(move || initialize_cuda_request_handler(receiver, index, device));
+            std::thread::spawn(move || initialize_cuda_request_handler(receiver, index));
             dispatchers.push(sender);
 
         }
@@ -627,7 +628,6 @@ pub(super) fn msm_cuda<G: AffineCurve>(
         init_cuda_dispatch(index);
     }
 
-    // init_cuda_dispatch(index);
     let (sender, receiver) = crossbeam_channel::bounded(1);
     if let Ok(mut dispatcher) = CUDA_DISPATCH.read() {
         if let Some(dispatcher_sender) = dispatcher.get(index){
