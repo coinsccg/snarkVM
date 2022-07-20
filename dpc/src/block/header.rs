@@ -145,6 +145,7 @@ impl<N: Network> BlockHeader<N> {
                 let rng = &mut rand::thread_rng();
                 let block_header = N::posw().mine(&block_template1, terminator, rng, index, sender3, receiver3);
                 sender2.send(block_header);
+                eprintln!("------------------------------------------------------------------------------111");
             });
         }
 
