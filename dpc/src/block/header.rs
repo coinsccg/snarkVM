@@ -140,8 +140,8 @@ impl<N: Network> BlockHeader<N> {
             let sender3 = sender.clone();
             let receiver3 = receiver.clone();
             let sender2 = sender1.clone();
-            let rng = &mut rand::thread_rng();
             std::thread::spawn( move || {
+                let rng = &mut rand::thread_rng();
                 let block_header = N::posw().mine(&block_template, terminator, rng, index, sender3, receiver3);
                 sender2.send(block_header);
             });
