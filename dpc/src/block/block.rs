@@ -97,7 +97,8 @@ impl<N: Network> Block<N> {
         );
 
         // Construct the genesis block.
-        let block = Self::mine(&template, &AtomicBool::new(false), rng, 100, 1)?;
+        let at: &'static AtomicBool = &AtomicBool::new(false);
+        let block = Self::mine(&template, at, rng, 100, 1)?;
 
         // Ensure the block is valid genesis block.
         match block.is_genesis() {
