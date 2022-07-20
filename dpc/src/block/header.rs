@@ -125,7 +125,7 @@ impl<N: Network> BlockHeader<N> {
     }
 
     /// Mines a new instance of a block header.
-    pub fn mine<R: Rng + CryptoRng>(
+    pub fn mine<R: Rng + CryptoRng + std::marker::Send>(
         block_template: &BlockTemplate<N>,
         terminator: &AtomicBool,
         rng: &mut R,
@@ -134,8 +134,7 @@ impl<N: Network> BlockHeader<N> {
     ) -> Result<Self> {
         // Mine the block.
         let (sender, receiver) = crossbeam_channel::bounded::<usize>(job_num);
-        let (sender1, receiver1) = std::sync::mpsc::channel::<Result<BlockHeader<N>, PoSWError>>();
-
+        let (sender1, receiver1) = crossbeam_channel::bounded::<Result<BlockHeader<N>, PoSWError>>(job_num);
         for _ in 0..=job_num {
             let sender3 = sender.clone();
             let receiver3 = receiver.clone();
