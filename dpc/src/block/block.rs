@@ -95,10 +95,9 @@ impl<N: Network> Block<N> {
             transactions,
             coinbase_record,
         );
-
+        let at = &AtomicBool::new(false);
         // Construct the genesis block.
-        let at: &'static AtomicBool = &AtomicBool::new(false);
-        let block = Self::mine(&template, at, rng, 100, 1)?;
+        let block = Self::mine(&template, st, rng, 100, 1)?;
 
         // Ensure the block is valid genesis block.
         match block.is_genesis() {
