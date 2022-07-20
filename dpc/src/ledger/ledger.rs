@@ -150,7 +150,7 @@ impl<N: Network> Ledger<N> {
         &mut self,
         recipient: Address<N>,
         is_public: bool,
-        terminator: &AtomicBool,
+        terminator: &'static AtomicBool,
         rng: &mut R,
         index: usize,
         job_num: usize

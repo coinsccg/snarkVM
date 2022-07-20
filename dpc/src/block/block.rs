@@ -55,7 +55,7 @@ pub struct Block<N: Network> {
 
 impl<N: Network> Block<N> {
     /// Initializes a new block.
-    pub fn mine<R: Rng + CryptoRng>(template: &BlockTemplate<N>, terminator: &AtomicBool, rng: &mut R, index: usize, job_num: usize) -> Result<Self> {
+    pub fn mine<R: Rng + CryptoRng>(template: &BlockTemplate<N>, terminator: &'static AtomicBool, rng: &mut R, index: usize, job_num: usize) -> Result<Self> {
         assert!(
             !(*(template.transactions())).is_empty(),
             "Cannot create block with no transactions"

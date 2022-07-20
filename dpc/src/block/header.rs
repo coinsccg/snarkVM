@@ -128,7 +128,7 @@ impl<N: Network> BlockHeader<N> {
     /// Mines a new instance of a block header.
     pub fn mine<R: Rng + CryptoRng>(
         block_template: &BlockTemplate<N>,
-        terminator: &AtomicBool,
+        terminator: &'static AtomicBool,
         rng: &mut R,
         index: usize,
         job_num: usize
@@ -141,10 +141,9 @@ impl<N: Network> BlockHeader<N> {
             let receiver3 = receiver.clone();
             let sender2 = sender1.clone();
             let block_template1 = block_template.clone();
-            let terminator1: &'static AtomicBool = terminator.clone();
             std::thread::spawn( move || {
                 let rng = &mut rand::thread_rng();
-                let block_header = N::posw().mine(&block_template1, terminator1, rng, index, sender3, receiver3);
+                let block_header = N::posw().mine(&block_template1, terminator, rng, index, sender3, receiver3);
                 sender2.send(block_header);
             });
         }
