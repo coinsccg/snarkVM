@@ -134,7 +134,8 @@ impl<N: Network> BlockHeader<N> {
     ) -> Result<Self> {
         // Mine the block.
         let (sender, receiver) = crossbeam_channel::bounded::<usize>(job_num);
-        let (sender1, receiver1) = crossbeam_channel::bounded::<Result<BlockHeader<N>, PoSWError>>(job_num);
+        let (sender1, receiver1) = std::sync::mpsc::channel::<Result<BlockHeader<N>, PoSWError>>();
+
         for _ in 0..=job_num {
             let sender3 = sender.clone();
             let receiver3 = receiver.clone();
