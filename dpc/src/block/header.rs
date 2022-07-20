@@ -141,7 +141,7 @@ impl<N: Network> BlockHeader<N> {
             let sender2 = sender1.clone();
             std::thread::spawn( move || {
                 let block_header = N::posw().mine(block_template, terminator, rng, index, sender3, receiver3)?;
-                sender2.send(block_header);
+                sender2.send(block_header)
             });
         }
 
@@ -152,7 +152,7 @@ impl<N: Network> BlockHeader<N> {
                 true => Ok(block_header),
                 false => Err(anyhow!("Failed to initialize a block header")),
             }
-        }
+        };
 
         Err(anyhow!("Ming failure"))
     }
