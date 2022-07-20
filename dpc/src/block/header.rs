@@ -157,15 +157,16 @@ impl<N: Network> BlockHeader<N> {
         //     };
         //     res
         // }
-        let Ok(Ok(block_header)) = receiver1.recv();
-        eprintln!("------------------------------------------------------------------------------11");
-        match block_header.is_valid() {
-            true => Ok(block_header),
-            false => Err(anyhow!("Failed to initialize a block header")),
+        if let Ok(Ok(block_header)) = receiver1.recv() {
+            eprintln!("------------------------------------------------------------------------------11");
+            match block_header.is_valid() {
+                true => Ok(block_header),
+                false => Err(anyhow!("Failed to initialize a block header")),
+            }
+        } else {
+            Err(anyhow!("Mining failed"))
         }
 
-        // eprintln!("------------------------------------------------------------------------------11");
-        // Err(anyhow!("Ming failure"))
     }
 
     ///
