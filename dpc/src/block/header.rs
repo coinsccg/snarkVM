@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with the snarkVM library. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{BlockError, BlockTemplate, Network, PoSWCircuit, PoSWProof, PoSWScheme};
+use crate::{BlockError, BlockTemplate, Network, PoSWCircuit, PoSWError, PoSWProof, PoSWScheme};
 use snarkvm_algorithms::merkle_tree::{MerklePath, MerkleTree};
 use snarkvm_utilities::{
     fmt,
@@ -134,25 +134,25 @@ impl<N: Network> BlockHeader<N> {
     ) -> Result<Self> {
         // Mine the block.
         let (sender, receiver) = crossbeam_channel::bounded::<usize>(job_num);
-        let (sender1, receiver1) = crossbeam_channel::bounded::<BlockHeader<N>>(job_num);
+        let (sender1, receiver1) = crossbeam_channel::bounded::<Result<BlockHeader<N>, PoSWError>>(job_num);
         for _ in 0..=job_num {
             let sender3 = sender.clone();
             let receiver3 = receiver.clone();
             let sender2 = sender1.clone();
             std::thread::spawn( move || {
-                let block_header = N::posw().mine(block_template, terminator, rng, index, sender3, receiver3)?;
+                let block_header = N::posw().mine(block_template, terminator, rng, index, sender3, receiver3);
                 sender2.send(block_header);
             });
         }
 
-        while let Ok(block_header) = receiver1.recv() {
+        while let Ok(Ok(block_header)) = receiver1.recv() {
             // Ensure the block header is valid.
             eprintln!("------------------------------------------------------------------------------");
             match block_header.is_valid() {
                 true => Ok(block_header),
                 false => Err(anyhow!("Failed to initialize a block header")),
-            };
-        };
+            }
+        }
 
         Err(anyhow!("Ming failure"))
     }
