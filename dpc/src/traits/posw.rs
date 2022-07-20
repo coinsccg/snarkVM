@@ -21,6 +21,7 @@ use snarkvm_algorithms::{traits::SNARK, SRS};
 
 use anyhow::Result;
 use rand::{CryptoRng, Rng};
+use std::sync::Arc;
 
 pub trait PoSWScheme<N: Network>: Clone + Send + Sync {
     /// Sets up an instance of PoSW using an SRS.

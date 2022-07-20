@@ -31,6 +31,7 @@ use anyhow::{anyhow, Result};
 use rand::{CryptoRng, Rng};
 use serde::{de, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
 use std::{mem::size_of, sync::atomic::AtomicBool};
+use std::sync::Arc;
 
 /// Block header metadata.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -125,7 +126,7 @@ impl<N: Network> BlockHeader<N> {
     }
 
     /// Mines a new instance of a block header.
-    pub fn mine<R: Rng + CryptoRng + std::marker::Send>(
+    pub fn mine<R: Rng + CryptoRng>(
         block_template: &BlockTemplate<N>,
         terminator: &AtomicBool,
         rng: &mut R,
@@ -139,8 +140,9 @@ impl<N: Network> BlockHeader<N> {
             let sender3 = sender.clone();
             let receiver3 = receiver.clone();
             let sender2 = sender1.clone();
+
             std::thread::spawn( move || {
-                let block_header = N::posw().mine(block_template, terminator, rng, index, sender3, receiver3);
+                let block_header = N::posw().mine(&block_template, terminator, rng, index, sender3, receiver3);
                 sender2.send(block_header);
             });
         }
