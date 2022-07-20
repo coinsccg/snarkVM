@@ -157,7 +157,7 @@ impl<N: Network> BlockHeader<N> {
                 false => Err(anyhow!("Failed to initialize a block header")),
             };
         }
-
+        eprintln!("-----------2222222222-------------------------------------------------------------------");
         Err(anyhow!("Ming failure"))
     }
 
