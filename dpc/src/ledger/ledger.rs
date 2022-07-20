@@ -153,7 +153,7 @@ impl<N: Network> Ledger<N> {
         terminator: &AtomicBool,
         rng: &mut R,
         index: usize,
-        receiver: crossbeam_channel::Receiver<usize>
+        job_num: usize
     ) -> Result<Record<N>> {
         // Prepare the new block.
         let previous_block_hash = self.latest_block_hash();
@@ -202,7 +202,7 @@ impl<N: Network> Ledger<N> {
 
         // Mine the next block.
         // let (sender, receiver) = crossbeam_channel::bounded::<usize>(1);
-        let block = Block::mine(&template, terminator, rng, index, receiver)?;
+        let block = Block::mine(&template, terminator, rng, index, job_num)?;
 
         // Attempt to add the block to the canon chain.
         self.add_next_block(&block)?;
