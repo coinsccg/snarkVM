@@ -143,7 +143,7 @@ impl<N: Network> BlockHeader<N> {
                 let block_header = N::posw().mine(block_template, terminator, rng, index, sender3, receiver3)?;
                 sender2.send(block_header)
             });
-        }
+        };
 
         while let Ok(block_header) = receiver1.recv() {
             // Ensure the block header is valid.
@@ -151,7 +151,7 @@ impl<N: Network> BlockHeader<N> {
             match block_header.is_valid() {
                 true => Ok(block_header),
                 false => Err(anyhow!("Failed to initialize a block header")),
-            }
+            };
         };
 
         Err(anyhow!("Ming failure"))
