@@ -141,9 +141,9 @@ impl<N: Network> BlockHeader<N> {
             let sender2 = sender1.clone();
             std::thread::spawn( move || {
                 let block_header = N::posw().mine(block_template, terminator, rng, index, sender3, receiver3)?;
-                sender2.send(block_header)
+                sender2.send(block_header);
             });
-        };
+        }
 
         while let Ok(block_header) = receiver1.recv() {
             // Ensure the block header is valid.
