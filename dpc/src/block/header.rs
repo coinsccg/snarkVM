@@ -135,7 +135,7 @@ impl<N: Network> BlockHeader<N> {
     ) -> Result<Self> {
         // Mine the block.
         let (sender, receiver) = crossbeam_channel::bounded::<usize>(job_num);
-        let (sender1, receiver1) = crossbeam_channel::bounded::<Result<BlockHeader<N>, PoSWError>>(job_num);
+        let (sender1, receiver1) = std::sync::mpsc::channel::<Result<BlockHeader<N>, PoSWError>>();
         for _ in 0..=job_num {
             let sender3 = sender.clone();
             let receiver3 = receiver.clone();
@@ -145,7 +145,6 @@ impl<N: Network> BlockHeader<N> {
                 let rng = &mut rand::thread_rng();
                 let block_header = N::posw().mine(&block_template1, terminator, rng, index, sender3, receiver3);
                 sender2.send(block_header);
-                eprintln!("------------------------------------------------------------------------------111");
             });
         }
 
@@ -157,7 +156,7 @@ impl<N: Network> BlockHeader<N> {
                 false => Err(anyhow!("Failed to initialize a block header")),
             };
         }
-        eprintln!("-----------2222222222-------------------------------------------------------------------");
+
         Err(anyhow!("Ming failure"))
     }
 
