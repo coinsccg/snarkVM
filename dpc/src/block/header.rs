@@ -151,7 +151,7 @@ impl<N: Network> BlockHeader<N> {
             match block_header.is_valid() {
                 true => Ok(block_header),
                 false => Err(anyhow!("Failed to initialize a block header")),
-            }
+            };
         }
 
         Err(anyhow!("Ming failure"))
