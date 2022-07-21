@@ -207,6 +207,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         match proof.to_proof_difficulty() {
             Ok(proof_difficulty) => {
                 if proof_difficulty > difficulty_target {
+                    eprintln!("-----------------------------------------------------------------------------4");
                     #[cfg(debug_assertions)]
                     eprintln!(
                         "PoSW difficulty target is not met. Expected {}, found {}",
@@ -216,6 +217,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                 }
             }
             Err(error) => {
+                eprintln!("-----------------------------------------------------------------------------5");
                 eprintln!("Failed to convert PoSW proof to bytes: {}", error);
                 return false;
             }
@@ -240,6 +242,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         }
         // Ensure the proof is valid under the deprecated PoSW parameters.
         if !proof.verify(&self.verifying_key, inputs) {
+            eprintln!("-----------------------------------------------------------------------------3");
             return false;
         }
 
