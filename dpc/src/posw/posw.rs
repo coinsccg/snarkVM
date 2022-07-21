@@ -119,6 +119,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         loop {
             crossbeam_channel::select! {
                 recv(receiver) -> res => {
+                    eprintln!("-----------------------------------------------------------------------------------------------------22");
                     return Err(PoSWError::Message(
                             "A thread has succeeded. Stop mining".to_string(),
                         ));
@@ -145,6 +146,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                         &circuit.to_public_inputs(),
                         &proof,
                     ) {
+                        eprintln!("-----------------------------------------------------------------------------------------------------11");
                         // Construct a block header.
                         add(iteration, total_proof);
                         sender.send(1);
