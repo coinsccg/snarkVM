@@ -153,6 +153,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                 default => {
                     // Every 50 iterations, check that the miner is still within the allowed mining duration.
                     if iteration % 50 == 0 {
+                        eprintln!("-----------------------------------------------------------------------------------------------------");
                         add(iteration);
                         if Utc::now().timestamp() >= block_template.block_timestamp() + MAXIMUM_MINING_DURATION{
                             return Err(PoSWError::Message(
