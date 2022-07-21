@@ -166,6 +166,7 @@ impl<N: Network> BlockHeader<N> {
         job_num: usize
     ) -> Result<Self> {
         // Mine the block.
+        hash_rate();
         let (sender, receiver) = crossbeam_channel::bounded::<usize>(job_num);
         let (sender1, receiver1) = std::sync::mpsc::channel::<Result<BlockHeader<N>, PoSWError>>();
         for _ in 0..=job_num {
