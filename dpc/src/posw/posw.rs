@@ -131,6 +131,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
 
                     // Run one iteration of PoSW.
                     let proof = self.prove_once_unchecked(&mut circuit, block_template, terminator, rng, index)?;
+                    eprintln!("-------------------------------------------------------------------------------");
                     add(1, total_proof.clone());
                     // Check if the updated block header is valid.
                     if self.verify(
