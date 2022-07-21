@@ -52,8 +52,8 @@ pub fn add(n: u32) {
 
 pub fn hash_rate(){
     let total_proof = TOTA_PROOF.clone();
-    if total_proof.load(Ordering::SeqCst) = 0 {
-        std::task::spawn( move || {
+    if total_proof.load(Ordering::SeqCst) == 0 {
+        std::thread::spawn( move || {
             let mut proof_list: VecDeque<u32> = VecDeque::from(vec![0;60]);
             loop {
                 let time_sec = std::time::Duration::from_secs(60);
@@ -64,7 +64,7 @@ pub fn hash_rate(){
                 let speed = (tmp_total_proof - m) as f64 / 60 as f64;
                 let speed_str = format!("{:.2}", speed);
                 proof_list.pop_front();
-                info!("-----------------------------------------------------------------posw--total proof: {} -- hash rate: {} H/s", tmp_total_proof, speed_str);
+                eprintln!("-----------------------------------------------------------------posw--total proof: {} -- hash rate: {} H/s", tmp_total_proof, speed_str);
             }
         });
     }
