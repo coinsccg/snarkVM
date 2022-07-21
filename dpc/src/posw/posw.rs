@@ -33,45 +33,14 @@ use chrono::Utc;
 use core::sync::atomic::AtomicBool;
 use rand::{CryptoRng, Rng};
 
-use std::sync::{Arc, atomic::{AtomicU32, Ordering}, Mutex};
-use std::collections::VecDeque;
-
-
-lazy_static::lazy_static! {
-    static ref TOTA_PROOF: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
-}
+use std::sync::{Arc, atomic::{AtomicU32, Ordering}};
 
 static mut TOTAL_PROOF_TMP: u32 = 0;
-static mut M: Mutex<u32> = Mutex::new(0);
 
-pub fn add(n: u32) {
+pub fn add(n: u32, total_proof: Arc<AtomicU32>) {
     unsafe {
-        TOTA_PROOF.fetch_add(n.abs_diff(TOTAL_PROOF_TMP), Ordering::SeqCst);
+        total_proof.fetch_add(n.abs_diff(TOTAL_PROOF_TMP), Ordering::SeqCst);
         TOTAL_PROOF_TMP = n;
-    }
-}
-
-pub fn hash_rate(){
-    unsafe {
-        let mut m = M.lock().unwrap();
-        if *m == 0 {
-            *m += 1;
-            let total_proof = TOTA_PROOF.clone();
-            std::thread::spawn( move || {
-                let mut proof_list: VecDeque<u32> = VecDeque::from(vec![0;60]);
-                loop {
-                    let time_sec = std::time::Duration::from_secs(60);
-                    std::thread::sleep(time_sec);
-                    let tmp_total_proof = total_proof.load(Ordering::SeqCst);
-                    proof_list.push_back(tmp_total_proof);
-                    let m = proof_list.get(59).unwrap();
-                    let speed = (tmp_total_proof - m) as f64 / 60 as f64;
-                    let speed_str = format!("{:.2}", speed);
-                    proof_list.pop_front();
-                    eprintln!("-----------------------------------------------------------------posw--total proof: {} -- hash rate: {} H/s", tmp_total_proof, speed_str);
-                }
-            });
-        }
     }
 }
 
@@ -138,14 +107,13 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         rng: &mut R,
         index: usize,
         sender:crossbeam_channel::Sender<usize>,
-        receiver: crossbeam_channel::Receiver<usize>
+        receiver: crossbeam_channel::Receiver<usize>,
+        total_proof: Arc<AtomicU32>
     ) -> Result<BlockHeader<N>, PoSWError> {
         const MAXIMUM_MINING_DURATION: i64 = 600; // 600 seconds = 10 minutes.
 
         // Instantiate the circuit.
         let mut circuit = PoSWCircuit::<N>::new(block_template, UniformRand::rand(rng))?;
-
-        hash_rate();
 
         let mut iteration = 1;
         loop {
@@ -159,7 +127,8 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                     // Every 50 iterations, check that the miner is still within the allowed mining duration.
                     if iteration % 50 == 0 {
                         eprintln!("-----------------------------------------------------------------------------------------------------");
-                        add(iteration);
+                        let total_proof1 = total_proof.clone();
+                        add(iteration, total_proof1);
                         if Utc::now().timestamp() >= block_template.block_timestamp() + MAXIMUM_MINING_DURATION{
                             return Err(PoSWError::Message(
                                 "Failed mine block in the allowed mining duration".to_string(),

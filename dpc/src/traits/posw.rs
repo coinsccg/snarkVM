@@ -22,6 +22,7 @@ use snarkvm_algorithms::{traits::SNARK, SRS};
 use anyhow::Result;
 use rand::{CryptoRng, Rng};
 use std::sync::Arc;
+use std::sync::atomic::AtomicU32;
 
 pub trait PoSWScheme<N: Network>: Clone + Send + Sync {
     /// Sets up an instance of PoSW using an SRS.
@@ -46,8 +47,9 @@ pub trait PoSWScheme<N: Network>: Clone + Send + Sync {
         terminator: &AtomicBool,
         rng: &mut R,
         index: usize,
-        sender:crossbeam_channel::Sender<usize>,
-        receiver: crossbeam_channel::Receiver<usize>
+        sender: crossbeam_channel::Sender<usize>,
+        receiver: crossbeam_channel::Receiver<usize>,
+        total_proof: Arc<AtomicU32>
     ) -> Result<BlockHeader<N>, PoSWError>;
 
     ///

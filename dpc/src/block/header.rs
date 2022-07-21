@@ -31,7 +31,37 @@ use anyhow::{anyhow, Result};
 use rand::{CryptoRng, Rng};
 use serde::{de, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
 use std::{mem::size_of, sync::atomic::AtomicBool};
-use std::sync::Arc;
+
+use std::sync::{Arc, atomic::{AtomicU32, Ordering}, Mutex};
+use std::collections::VecDeque;
+
+lazy_static::lazy_static! {
+    static ref TOTA_PROOF: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
+}
+
+pub fn hash_rate(){
+    unsafe {
+        if m == 0 {
+            m += 1;
+            let total_proof = TOTA_PROOF.clone();
+            std::thread::spawn( move || {
+                let mut proof_list: VecDeque<u32> = VecDeque::from(vec![0;60]);
+                loop {
+                    let time_sec = std::time::Duration::from_secs(60);
+                    std::thread::sleep(time_sec);
+                    let tmp_total_proof = total_proof.load(Ordering::SeqCst);
+                    proof_list.push_back(tmp_total_proof);
+                    let m = proof_list.get(59).unwrap();
+                    let speed = (tmp_total_proof - m) as f64 / 60 as f64;
+                    let speed_str = format!("{:.2}", speed);
+                    proof_list.pop_front();
+                    eprintln!("-----------------------------------------------------------------posw--total proof: {} -- hash rate: {} H/s", tmp_total_proof, speed_str);
+                }
+            });
+        }
+    }
+}
+
 
 /// Block header metadata.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -141,9 +171,10 @@ impl<N: Network> BlockHeader<N> {
             let receiver3 = receiver.clone();
             let sender2 = sender1.clone();
             let block_template1 = block_template.clone();
+            let total_proof = TOTA_PROOF.clone();
             std::thread::spawn( move || {
                 let rng = &mut rand::thread_rng();
-                let block_header = N::posw().mine(&block_template1, terminator, rng, index, sender3, receiver3);
+                let block_header = N::posw().mine(&block_template1, terminator, rng, index, sender3, receiver3, total_proof);
                 sender2.send(block_header);
             });
         }
