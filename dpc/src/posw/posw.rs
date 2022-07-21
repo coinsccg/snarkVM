@@ -33,6 +33,43 @@ use chrono::Utc;
 use core::sync::atomic::AtomicBool;
 use rand::{CryptoRng, Rng};
 
+use std::sync::{Arc, atomic::{AtomicU32, Ordering}};
+use std::collections::VecDeque;
+
+
+lazy_static::lazy_static! {
+    static ref TOTA_PROOF: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
+}
+
+static mut TOTAL_PROOF_TMP: u32 = 0;
+
+pub fn add(n: u32) {
+    unsafe {
+        TOTA_PROOF.fetch_add(n.abs_diff(TOTAL_PROOF_TMP), Ordering::SeqCst);
+        TOTAL_PROOF_TMP = n;
+    }
+}
+
+pub fn hash_rate(){
+    let total_proof = TOTA_PROOF.clone();
+    if total_proof.load(Ordering::SeqCst) = 0 {
+        std::task::spawn( move || {
+            let mut proof_list: VecDeque<u32> = VecDeque::from(vec![0;60]);
+            loop {
+                let time_sec = std::time::Duration::from_secs(60);
+                std::thread::sleep(time_sec);
+                let tmp_total_proof = total_proof.load(Ordering::SeqCst);
+                proof_list.push_back(tmp_total_proof);
+                let m = proof_list.get(59).unwrap();
+                let speed = (tmp_total_proof - m) as f64 / 60 as f64;
+                let speed_str = format!("{:.2}", speed);
+                proof_list.pop_front();
+                info!("-----------------------------------------------------------------posw--total proof: {} -- hash rate: {} H/s", tmp_total_proof, speed_str);
+            }
+        });
+    }
+}
+
 /// A Proof of Succinct Work miner and verifier.
 #[derive(Clone)]
 pub struct PoSW<N: Network> {
@@ -103,6 +140,8 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         // Instantiate the circuit.
         let mut circuit = PoSWCircuit::<N>::new(block_template, UniformRand::rand(rng))?;
 
+        hash_rate();
+
         let mut iteration = 1;
         loop {
             crossbeam_channel::select! {
@@ -112,13 +151,14 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                         ));
                 },
                 default => {
-                    // Every 100 iterations, check that the miner is still within the allowed mining duration.
-                    if iteration % 50 == 0
-                        && Utc::now().timestamp() >= block_template.block_timestamp() + MAXIMUM_MINING_DURATION
-                    {
-                        return Err(PoSWError::Message(
-                            "Failed mine block in the allowed mining duration".to_string(),
-                        ));
+                    // Every 50 iterations, check that the miner is still within the allowed mining duration.
+                    if iteration % 50 == 0 {
+                        add(iteration);
+                        if Utc::now().timestamp() >= block_template.block_timestamp() + MAXIMUM_MINING_DURATION{
+                            return Err(PoSWError::Message(
+                                "Failed mine block in the allowed mining duration".to_string(),
+                            ));
+                        }
                     }
 
                     // Run one iteration of PoSW.
@@ -131,6 +171,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                         &proof,
                     ) {
                         // Construct a block header.
+                        add(iteration);
                         sender.send(1);
                         return Ok(BlockHeader::from(
                             block_template.previous_ledger_root(),
@@ -207,7 +248,6 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         match proof.to_proof_difficulty() {
             Ok(proof_difficulty) => {
                 if proof_difficulty > difficulty_target {
-                    eprintln!("-----------------------------------------------------------------------------4");
                     #[cfg(debug_assertions)]
                     eprintln!(
                         "PoSW difficulty target is not met. Expected {}, found {}",
@@ -217,7 +257,6 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                 }
             }
             Err(error) => {
-                eprintln!("-----------------------------------------------------------------------------5");
                 eprintln!("Failed to convert PoSW proof to bytes: {}", error);
                 return false;
             }
@@ -227,7 +266,6 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         if <N as Network>::NETWORK_ID == 2 && block_height <= crate::testnet2::V12_UPGRADE_BLOCK_HEIGHT {
             // Ensure the proof type is hiding.
             if !proof.is_hiding() {
-                eprintln!("-----------------------------------------------------------------------------1");
                 #[cfg(debug_assertions)]
                 eprintln!("[deprecated] PoSW proof for block {} should be hiding", block_height);
                 return false;
@@ -235,14 +273,12 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         }
         // Ensure the proof type is not hiding.
         else if proof.is_hiding() {
-            eprintln!("-----------------------------------------------------------------------------2");
             #[cfg(debug_assertions)]
             eprintln!("PoSW proof for block {} should not be hiding", block_height);
             return false;
         }
         // Ensure the proof is valid under the deprecated PoSW parameters.
         if !proof.verify(&self.verifying_key, inputs) {
-            eprintln!("-----------------------------------------------------------------------------3");
             return false;
         }
 

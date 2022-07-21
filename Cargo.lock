@@ -2021,6 +2021,7 @@ dependencies = [
  "derivative",
  "hex",
  "itertools",
+ "lazy_static",
  "once_cell",
  "rand",
  "rand_chacha",
