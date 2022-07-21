@@ -39,10 +39,12 @@ lazy_static::lazy_static! {
     static ref TOTA_PROOF: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
 }
 
+static mut M: usize = 0;
+
 pub fn hash_rate(){
     unsafe {
-        if m == 0 {
-            m += 1;
+        if M == 0 {
+            M += 1;
             let total_proof = TOTA_PROOF.clone();
             std::thread::spawn( move || {
                 let mut proof_list: VecDeque<u32> = VecDeque::from(vec![0;60]);

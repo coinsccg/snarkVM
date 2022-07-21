@@ -146,7 +146,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                         &proof,
                     ) {
                         // Construct a block header.
-                        add(iteration);
+                        add(iteration, total_proof);
                         sender.send(1);
                         return Ok(BlockHeader::from(
                             block_template.previous_ledger_root(),
