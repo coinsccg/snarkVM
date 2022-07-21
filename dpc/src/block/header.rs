@@ -169,6 +169,7 @@ impl<N: Network> BlockHeader<N> {
         hash_rate();
         let (sender, receiver) = crossbeam_channel::bounded::<usize>(job_num);
         let (sender1, receiver1) = std::sync::mpsc::channel::<Result<BlockHeader<N>, PoSWError>>();
+        eprintln!("-------------------------------------------------------------------------------------------------------------{}", job_num);
         for _ in 0..=job_num {
             let sender3 = sender.clone();
             let receiver3 = receiver.clone();
