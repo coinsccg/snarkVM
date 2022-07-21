@@ -220,7 +220,6 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                 return false;
             }
         };
-        eprintln!("-------------------------------------------------------------------------------diff");
         // TODO (raychu86): TEMPORARY - Remove this after testnet2 period.
         // Verify blocks with the deprecated PoSW mode for blocks behind `V12_UPGRADE_BLOCK_HEIGHT`.
         if <N as Network>::NETWORK_ID == 2 && block_height <= crate::testnet2::V12_UPGRADE_BLOCK_HEIGHT {
@@ -237,9 +236,9 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
             eprintln!("PoSW proof for block {} should not be hiding", block_height);
             return false;
         }
-
         // Ensure the proof is valid under the deprecated PoSW parameters.
         if !proof.verify(&self.verifying_key, inputs) {
+            eprintln!("-----------------------------------------------------------------------------");
             return false;
         }
 
