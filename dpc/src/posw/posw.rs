@@ -113,7 +113,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                 },
                 default => {
                     // Every 100 iterations, check that the miner is still within the allowed mining duration.
-                    if iteration % 100 == 0
+                    if iteration % 50 == 0
                         && Utc::now().timestamp() >= block_template.block_timestamp() + MAXIMUM_MINING_DURATION
                     {
                         return Err(PoSWError::Message(
@@ -123,7 +123,6 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
 
                     // Run one iteration of PoSW.
                     let proof = self.prove_once_unchecked(&mut circuit, block_template, terminator, rng, index)?;
-                    eprintln!("22222222222222222222222222222222222222222222222222222222222222");
                     // Check if the updated block header is valid.
                     if self.verify(
                         block_template.block_height(),
@@ -132,7 +131,6 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                         &proof,
                     ) {
                         // Construct a block header.
-                        eprintln!("1111111111111111111111111111111111111111111111111111111");
                         sender.send(1);
                         return Ok(BlockHeader::from(
                             block_template.previous_ledger_root(),
@@ -222,7 +220,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                 return false;
             }
         };
-
+        eprintln!("-------------------------------------------------------------------------------diff");
         // TODO (raychu86): TEMPORARY - Remove this after testnet2 period.
         // Verify blocks with the deprecated PoSW mode for blocks behind `V12_UPGRADE_BLOCK_HEIGHT`.
         if <N as Network>::NETWORK_ID == 2 && block_height <= crate::testnet2::V12_UPGRADE_BLOCK_HEIGHT {
