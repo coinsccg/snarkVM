@@ -35,13 +35,9 @@ use rand::{CryptoRng, Rng};
 
 use std::sync::{Arc, atomic::{AtomicU32, Ordering}};
 
-static mut TOTAL_PROOF_TMP: u32 = 0;
 
 pub fn add(n: u32, total_proof: Arc<AtomicU32>) {
-    unsafe {
-        total_proof.fetch_add(n.abs_diff(TOTAL_PROOF_TMP), Ordering::SeqCst);
-        TOTAL_PROOF_TMP = n;
-    }
+        total_proof.fetch_add(n, Ordering::SeqCst);
 }
 
 /// A Proof of Succinct Work miner and verifier.
@@ -119,7 +115,6 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
         loop {
             crossbeam_channel::select! {
                 recv(receiver) -> res => {
-                    eprintln!("-----------------------------------------------------------------------------------------------------22");
                     return Err(PoSWError::Message(
                             "A thread has succeeded. Stop mining".to_string(),
                         ));
@@ -127,9 +122,6 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                 default => {
                     // Every 50 iterations, check that the miner is still within the allowed mining duration.
                     if iteration % 50 == 0 {
-                        eprintln!("-----------------------------------------------------------------------------------------------------");
-                        let total_proof1 = total_proof.clone();
-                        add(iteration, total_proof1);
                         if Utc::now().timestamp() >= block_template.block_timestamp() + MAXIMUM_MINING_DURATION{
                             return Err(PoSWError::Message(
                                 "Failed mine block in the allowed mining duration".to_string(),
@@ -139,7 +131,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
 
                     // Run one iteration of PoSW.
                     let proof = self.prove_once_unchecked(&mut circuit, block_template, terminator, rng, index)?;
-                    eprintln!("111111111111111111111111111111111111111111111111111111111111111111111111");
+                    add(iteration, total_proof);
                     // Check if the updated block header is valid.
                     if self.verify(
                         block_template.block_height(),
@@ -147,9 +139,7 @@ impl<N: Network> PoSWScheme<N> for PoSW<N> {
                         &circuit.to_public_inputs(),
                         &proof,
                     ) {
-                        eprintln!("-----------------------------------------------------------------------------------------------------11");
                         // Construct a block header.
-                        add(iteration, total_proof);
                         sender.send(1);
                         return Ok(BlockHeader::from(
                             block_template.previous_ledger_root(),
