@@ -169,7 +169,6 @@ impl<N: Network> BlockHeader<N> {
         hash_rate();
         let (sender, receiver) = crossbeam_channel::bounded::<usize>(job_num);
         let (sender1, receiver1) = std::sync::mpsc::channel::<Result<BlockHeader<N>, PoSWError>>();
-        eprintln!("-------------------------------------------------------------------------------------------------------------{}", job_num);
         for _ in 0..=job_num {
             let sender3 = sender.clone();
             let receiver3 = receiver.clone();
@@ -177,8 +176,7 @@ impl<N: Network> BlockHeader<N> {
             let block_template1 = block_template.clone();
             let total_proof = TOTA_PROOF.clone();
             std::thread::spawn( move || {
-                let rng = &mut rand::thread_rng();
-                let block_header = N::posw().mine(&block_template1, terminator, rng, index, sender3, receiver3, total_proof);
+                let block_header = N::posw().mine(&block_template1, terminator, &mut rand::thread_rng(), index, sender3, receiver3, total_proof);
                 sender2.send(block_header);
             });
         }
