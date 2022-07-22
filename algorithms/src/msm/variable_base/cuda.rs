@@ -609,7 +609,7 @@ fn init_cuda_dispatch(index: usize) {
 
 lazy_static::lazy_static! {
     static ref CUDA_DISPATCH: RwLock<Vec<crossbeam_channel::Sender<CudaRequest>>> = RwLock::new(Vec::new());
-    static ref TP: RwLock<Vec<ThreadPool>> = RwLock::new(Vec::new());
+    // static ref TP: RwLock<Vec<ThreadPool>> = RwLock::new(Vec::new());
 }
 
 pub(super) fn msm_cuda<G: AffineCurve>(
