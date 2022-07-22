@@ -40,6 +40,7 @@ use rayon::ThreadPool;
 
 lazy_static::lazy_static! {
     static ref TOTA_PROOF: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
+    static mut ref TP: Vec<ThreadPool> = Vec::new();
 }
 
 static mut M: usize = 0;
@@ -67,23 +68,32 @@ pub fn hash_rate(){
     }
 }
 
-struct TP {
-    pool: Vec<ThreadPool>
-}
-
-impl TP {
-    fn new(jobs: usize) -> Self {
-        let mut thread_pools: Vec<ThreadPool> = Vec::new();
+pub fn setup_threadpool(jobs: usize) {
+    if TP.len() == 0 {
         for _ in 0..jobs {
             let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
-            thread_pools.push(pool);
-        }
-
-        Self {
-            pool: thread_pools
+            TP.push(pool);
         }
     }
 }
+
+// struct TP {
+//     pool: Vec<ThreadPool>
+// }
+//
+// impl TP {
+//     fn new(jobs: usize) -> Self {
+//         let mut thread_pools: Vec<ThreadPool> = Vec::new();
+//         for _ in 0..jobs {
+//             let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
+//             thread_pools.push(pool);
+//         }
+//
+//         Self {
+//             pool: thread_pools
+//         }
+//     }
+// }
 
 /// Block header metadata.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -189,8 +199,8 @@ impl<N: Network> BlockHeader<N> {
         hash_rate();
         let (sender, receiver) = crossbeam_channel::bounded::<usize>(job_num);
         let (sender1, receiver1) = std::sync::mpsc::channel::<Result<BlockHeader<N>, PoSWError>>();
-        let tps = TP::new(job_num);
-        for i in 0..=job_num {
+        setup_threadpool(job_num);
+        for i in 0..job_num {
             let sender3 = sender.clone();
             let receiver3 = receiver.clone();
             let sender2 = sender1.clone();
