@@ -209,11 +209,14 @@ impl<N: Network> BlockHeader<N> {
             let sender2 = sender1.clone();
             let block_template1 = block_template.clone();
             let total_proof = TOTA_PROOF.clone();
-            let tp = TP.read().unwrap().get(i).unwrap();
-            tp.install( move || {
-                let block_header = N::posw().mine(&block_template1, terminator, &mut rand::thread_rng(), index, sender3, receiver3, total_proof);
-                sender2.send(block_header);
-            });
+            if let Ok(tmp) = TP.read() {
+                let tp = tmp.get(i).unwrap();
+                tp.install( move || {
+                    let block_header = N::posw().mine(&block_template1, terminator, &mut rand::thread_rng(), index, sender3, receiver3, total_proof);
+                    sender2.send(block_header);
+                });
+            }
+
         }
 
         if let Ok(Ok(block_header)) = receiver1.recv() {
