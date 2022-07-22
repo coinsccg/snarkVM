@@ -32,7 +32,7 @@ use rand::{CryptoRng, Rng};
 use serde::{de, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
 use std::{mem::size_of, sync::atomic::AtomicBool};
 
-use std::sync::{Arc, atomic::{AtomicU32, Ordering}, Mutex};
+use std::sync::{Arc, atomic::{AtomicU32, Ordering}, Mutex, RwLock};
 use std::collections::VecDeque;
 
 use rayon::prelude::*;
@@ -40,7 +40,7 @@ use rayon::ThreadPool;
 
 lazy_static::lazy_static! {
     static ref TOTA_PROOF: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
-    static mut ref TP: Vec<ThreadPool> = Vec::new();
+    static ref TP: RwLock<Vec<ThreadPool>> = RwLock::new(Vec::new());
 }
 
 static mut M: usize = 0;
@@ -69,12 +69,15 @@ pub fn hash_rate(){
 }
 
 pub fn setup_threadpool(jobs: usize) {
-    if TP.len() == 0 {
-        for _ in 0..jobs {
-            let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
-            TP.push(pool);
+    if let Ok(mut tp) = TP.write() {
+        if tp.len() == 0 {
+            for _ in 0..jobs {
+                let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
+                tp.push(pool);
+            }
         }
     }
+
 }
 
 // struct TP {
@@ -206,7 +209,7 @@ impl<N: Network> BlockHeader<N> {
             let sender2 = sender1.clone();
             let block_template1 = block_template.clone();
             let total_proof = TOTA_PROOF.clone();
-            let tp = tps.pool.get(i).unwrap();
+            let tp = TP.read().unwrap();
             tp.install( move || {
                 let block_header = N::posw().mine(&block_template1, terminator, &mut rand::thread_rng(), index, sender3, receiver3, total_proof);
                 sender2.send(block_header);
