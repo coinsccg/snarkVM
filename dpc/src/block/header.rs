@@ -72,7 +72,7 @@ pub fn setup_threadpool(jobs: usize) {
     if let Ok(mut tp) = TP.write() {
         if tp.len() == 0 {
             for _ in 0..jobs {
-                let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
+                let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
                 tp.push(pool);
             }
         }
@@ -216,7 +216,6 @@ impl<N: Network> BlockHeader<N> {
                     sender2.send(block_header);
                 });
             }
-
         }
 
         if let Ok(Ok(block_header)) = receiver1.recv() {
