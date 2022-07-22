@@ -35,12 +35,8 @@ use std::{mem::size_of, sync::atomic::AtomicBool};
 use std::sync::{Arc, atomic::{AtomicU32, Ordering}, Mutex, RwLock};
 use std::collections::VecDeque;
 
-use rayon::prelude::*;
-use rayon::ThreadPool;
-
 lazy_static::lazy_static! {
     static ref TOTA_PROOF: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
-    static ref TP: RwLock<Vec<ThreadPool>> = RwLock::new(Vec::new());
 }
 
 static mut M: usize = 0;
@@ -67,36 +63,6 @@ pub fn hash_rate(){
         }
     }
 }
-
-pub fn setup_threadpool(jobs: usize) {
-    if let Ok(mut tp) = TP.write() {
-        if tp.len() == 0 {
-            for _ in 0..jobs {
-                let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
-                tp.push(pool);
-            }
-        }
-    }
-
-}
-
-// struct TP {
-//     pool: Vec<ThreadPool>
-// }
-//
-// impl TP {
-//     fn new(jobs: usize) -> Self {
-//         let mut thread_pools: Vec<ThreadPool> = Vec::new();
-//         for _ in 0..jobs {
-//             let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
-//             thread_pools.push(pool);
-//         }
-//
-//         Self {
-//             pool: thread_pools
-//         }
-//     }
-// }
 
 /// Block header metadata.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -202,20 +168,16 @@ impl<N: Network> BlockHeader<N> {
         hash_rate();
         let (sender, receiver) = crossbeam_channel::bounded::<usize>(job_num);
         let (sender1, receiver1) = std::sync::mpsc::channel::<Result<BlockHeader<N>, PoSWError>>();
-        setup_threadpool(job_num);
         for i in 0..job_num {
             let sender3 = sender.clone();
             let receiver3 = receiver.clone();
             let sender2 = sender1.clone();
             let block_template1 = block_template.clone();
             let total_proof = TOTA_PROOF.clone();
-            if let Ok(tmp) = TP.read() {
-                let tp = tmp.get(i).unwrap();
-                tp.install( move || {
-                    let block_header = N::posw().mine(&block_template1, terminator, &mut rand::thread_rng(), index, sender3, receiver3, total_proof);
-                    sender2.send(block_header);
-                });
-            }
+            std::thread::spawn( move || {
+                let block_header = N::posw().mine(&block_template1, terminator, &mut rand::thread_rng(), index, sender3, receiver3, total_proof);
+                sender2.send(block_header);
+            });
         }
 
         if let Ok(Ok(block_header)) = receiver1.recv() {
