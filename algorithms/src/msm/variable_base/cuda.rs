@@ -532,44 +532,47 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
     let cuda_thread: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
     let cuda_thread_tmp = cuda_thread.clone();
 
-    std::thread::spawn(move || {
-        loop {
-            let mut context_tmp1 = context_tmp.clone();
-            if let Ok(mut tasks) = tasks_tmp.write() {
-
-                if tasks.len() > 0 {
-                    let cuda_thread_tmp1 = cuda_thread_tmp.clone();
-                    if cuda_thread_tmp.load(Ordering::SeqCst) < 80 {
-                        let request = tasks.pop_front().unwrap();
-                        drop(tasks);
-                        std::thread::spawn(move || {
-                            let out = handle_cuda_request(&mut context_tmp1, &request, index);
-                            request.response.send(out).ok();
-                            cuda_thread_tmp1.fetch_sub(1,  Ordering::SeqCst);
-                        });
-                        cuda_thread_tmp.fetch_add(1,  Ordering::SeqCst);
-                    }
-                }
-            }
-        }
-    });
+    // std::thread::spawn(move || {
+    //     loop {
+    //         let mut context_tmp1 = context_tmp.clone();
+    //         if let Ok(mut tasks) = tasks_tmp.write() {
+    //
+    //             if tasks.len() > 0 {
+    //                 let cuda_thread_tmp1 = cuda_thread_tmp.clone();
+    //                 if cuda_thread_tmp.load(Ordering::SeqCst) < 80 {
+    //                     let request = tasks.pop_front().unwrap();
+    //                     drop(tasks);
+    //                     std::thread::spawn(move || {
+    //                         let out = handle_cuda_request(&mut context_tmp1, &request, index);
+    //                         request.response.send(out).ok();
+    //                         cuda_thread_tmp1.fetch_sub(1,  Ordering::SeqCst);
+    //                     });
+    //                     cuda_thread_tmp.fetch_add(1,  Ordering::SeqCst);
+    //                 }
+    //             }
+    //         }
+    //     }
+    // });
 
 
     while let Ok(mut request) = input.recv() {
         if let Ok(mut task_tmp) = tasks.write() {
-            if cuda_thread.load(Ordering::SeqCst) >= 80 {
-                task_tmp.push_back(request);
-                continue;
-            }
+            // if cuda_thread.load(Ordering::SeqCst) >= 80 {
+            //     task_tmp.push_back(request);
+            //     continue;
+            // }
             drop(task_tmp);
             let mut context = context.clone();
             let cuda_thread_tmp = cuda_thread.clone();
-            std::thread::spawn(move || {
-                let out = handle_cuda_request(&mut context, &request, index);
-                request.response.send(out).ok();
-                cuda_thread_tmp.fetch_sub(1,  Ordering::SeqCst);
-            });
-            cuda_thread.fetch_add(1,  Ordering::SeqCst);
+            if let Ok(tp) = TP.read()  {
+                tp[0].install(move || {
+                    let out = handle_cuda_request(&mut context, &request, index);
+                    request.response.send(out).ok();
+                    cuda_thread_tmp.fetch_sub(1,  Ordering::SeqCst);
+                });
+                cuda_thread.fetch_add(1,  Ordering::SeqCst);
+            }
+
         }
 
     }
@@ -585,31 +588,29 @@ fn init_cuda_dispatch(index: usize) {
             let (sender, receiver) = crossbeam_channel::bounded(4096);
             std::thread::spawn(move || initialize_cuda_request_handler(receiver, index));
             dispatchers.push(sender);
-
         }
-
+        setup_threadpool(15);
     }
 }
 
-// use rayon::prelude::*;
-// use rayon::ThreadPool;
-//
-// pub fn setup_threadpool(jobs: usize) {
-//     if let Ok(mut tp) = TP.write() {
-//         if tp.len() == 0 {
-//             for _ in 0..jobs {
-//                 let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
-//                 tp.push(pool);
-//             }
-//         }
-//     }
-//
-// }
+use rayon::prelude::*;
+use rayon::ThreadPool;
+
+pub fn setup_threadpool(n: usize) {
+    if let Ok(mut tp) = TP.write() {
+        if tp.len() == 0 {
+            let pool = rayon::ThreadPoolBuilder::new().num_threads(n).build().unwrap();
+            tp.push(pool);
+
+        }
+    }
+
+}
 
 
 lazy_static::lazy_static! {
     static ref CUDA_DISPATCH: RwLock<Vec<crossbeam_channel::Sender<CudaRequest>>> = RwLock::new(Vec::new());
-    // static ref TP: RwLock<Vec<ThreadPool>> = RwLock::new(Vec::new());
+    static ref TP: RwLock<Vec<ThreadPool>> = RwLock::new(Vec::new());
 }
 
 pub(super) fn msm_cuda<G: AffineCurve>(
