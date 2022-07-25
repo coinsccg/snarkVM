@@ -524,7 +524,7 @@ fn initialize_cuda_request_handler(input: crossbeam_channel::Receiver<CudaReques
     };
 
 
-    let mut tasks = Arc::new(RwLock::new(VecDeque::new()));
+    let mut tasks: Arc<RwLock<VecDeque<CudaRequest>>> = Arc::new(RwLock::new(VecDeque::new()));
     let mut tasks_tmp = tasks.clone();
 
     let mut context_tmp = context.clone();
