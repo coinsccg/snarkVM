@@ -589,7 +589,7 @@ fn init_cuda_dispatch(index: usize) {
             std::thread::spawn(move || initialize_cuda_request_handler(receiver, index));
             dispatchers.push(sender);
         }
-        setup_threadpool(15);
+        setup_threadpool(20);
     }
 }
 
